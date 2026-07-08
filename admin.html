@@ -86,7 +86,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <script>
     const PRODUCTION_GAS_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbwkVf2-5-yZrcfa-BfJJMgDq1saP95iITooTE3gRwx4tvv9MfX1eQR67fWoDW1dcMwtpw/exec";
-    var adminChartInstance = null; var currentContextTableName = null;
+    var adminChartInstance = null; 
+    var currentContextTableName = null;
 
     function handleAdminAuthentication(e) {
       e.preventDefault();
@@ -94,8 +95,13 @@
       const pass = document.getElementById("adminPasswordField").value;
       const secureHash = CryptoJS.SHA256(pass).toString(CryptoJS.enc.Hex);
 
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: "adminLogin", username: uid, password: secureHash }) })
-      .then(res => res.json()).then(data => {
+      fetch(PRODUCTION_GAS_ENDPOINT_URL, { 
+        method: "POST", 
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "adminLogin", username: uid, password: secureHash }) 
+      })
+      .then(res => res.json())
+      .then(data => {
         if(data.status === "Success") {
           document.getElementById("loginCard").classList.add("hidden");
           document.getElementById("adminWorkspace").classList.remove("hidden");
@@ -106,16 +112,31 @@
     }
 
     function loadDashboardMetricsOverviewPanel() {
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: "getAdminMetrics" }) })
-      .then(res => res.json()).then(m => {
+      fetch(PRODUCTION_GAS_ENDPOINT_URL, { 
+        method: "POST", 
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "getAdminMetrics" }) 
+      })
+      .then(res => res.json())
+      .then(m => {
         if(m.status === "Success") {
-          document.getElementById("mStaff").innerText = m.totalEmployees; document.getElementById("mBranches").innerText = m.totalBranches;
-          document.getElementById("mPresent").innerText = m.presentToday; document.getElementById("mMismatch").innerText = m.locationMismatches;
+          document.getElementById("mStaff").innerText = m.totalEmployees; 
+          document.getElementById("mBranches").innerText = m.totalBranches;
+          document.getElementById("mPresent").innerText = m.presentToday; 
+          document.getElementById("mMismatch").innerText = m.locationMismatches;
+          
           var ctx = document.getElementById('adminMetricsChartCanvas').getContext('2d');
           if (adminChartInstance) adminChartInstance.destroy();
-          adminChartInstance = new Chart(ctx, { type: 'bar', data: { labels: ['Present', 'Absent', 'GPS Flags'], datasets: [{ data: [m.presentToday, m.absentToday, m.locationMismatches], backgroundColor: ['#198754', '#dc3545', '#ffc107'] }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+          adminChartInstance = new Chart(ctx, { 
+            type: 'bar', 
+            data: { 
+              labels: ['Present', 'Absent', 'GPS Flags'], 
+              datasets: [{ data: [m.presentToday, m.absentToday, m.locationMismatches], backgroundColor: ['#198754', '#dc3545', '#ffc107'] }] 
+            }, 
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } 
+          });
         }
-      });
+      }).catch(err => console.error("Metrics pulling error:", err));
     }
 
     function streamRelationalTableData(table) {
@@ -125,10 +146,16 @@
       if(table === "Attendance" || table === "Leave") document.getElementById("btnAddNewRowEntityItem").classList.add("hidden");
       else document.getElementById("btnAddNewRowEntityItem").classList.remove("hidden");
 
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: "fetchLedger", targetTable: table }) })
-      .then(res => res.json()).then(p => {
+      fetch(PRODUCTION_GAS_ENDPOINT_URL, { 
+        method: "POST", 
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "fetchLedger", targetTable: table }) 
+      })
+      .then(res => res.json())
+      .then(p => {
          if(p.status === "Success") {
-           var t = document.getElementById("domOutputGridTargetTable"); t.innerHTML = "";
+           var t = document.getElementById("domOutputGridTargetTable"); 
+           t.innerHTML = "";
            var hRow = t.insertRow();
            p.headers.forEach(h => { var th = document.createElement('th'); th.innerText = h; hRow.appendChild(th); });
            p.data.forEach(r => {
@@ -139,30 +166,59 @@
              });
            });
          }
-      });
+      }).catch(err => console.error("Ledger reading failed:", err));
     }
 
     function revealEntityMutationModal() {
-      var form = document.getElementById("entityMutationFormTarget"); form.innerHTML = "";
+      var form = document.getElementById("entityMutationFormTarget"); 
+      form.innerHTML = "";
       var fields = currentContextTableName === "Credentials" ? ["EmployeeID", "EmployeeName", "Password", "Branch", "Department", "Designation", "JoiningDate", "Mobile", "Email"] : ["BranchID", "BranchName", "Address", "Latitude", "Longitude", "Radius", "OfficeStart", "OfficeEnd", "GraceTime", "WeeklyOff", "Manager"];
-      fields.forEach(f => { form.innerHTML += `<div class="mb-2"><label class="form-label small fw-bold mb-1">${f}</label><input type="text" name="${f}" class="form-control form-control-sm" required></div>`; });
+      fields.forEach(f => { 
+        form.innerHTML += `<div class="mb-2"><label class="form-label small fw-bold mb-1">${f}</label><input type="text" name="${f}" class="form-control form-control-sm" required></div>`; 
+      });
       form.innerHTML += `<button type="submit" class="btn btn-sm btn-danger w-100 mt-2">Commit Record Entry</button>`;
       new bootstrap.Modal(document.getElementById('entityMutationFormModal')).show();
     }
 
     function fireMutationRequestPayload(e) {
-      e.preventDefault(); var form = document.getElementById("entityMutationFormTarget"); var formData = new FormData(form); var payload = {};
-      formData.forEach((val, key) => { if(key === "Password") payload[key] = CryptoJS.SHA256(val).toString(CryptoJS.enc.Hex); else payload[key] = val; });
+      e.preventDefault(); 
+      var form = document.getElementById("entityMutationFormTarget"); 
+      var formData = new FormData(form); 
+      var payload = {};
+      
+      formData.forEach((val, key) => { 
+        // NOTE: The backend code executes computeSHA256HexDigest inside executeEmployeeAuthentication during verification loop. 
+        // We pass the raw values or prehashed values uniformly according to backend switch structures.
+        payload[key] = val; 
+      });
+      
       bootstrap.Modal.getInstance(document.getElementById('entityMutationFormModal')).hide();
       const route = currentContextTableName === "Credentials" ? "saveEmployee" : "saveBranch";
       
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: route, mode: "add", data: payload }) })
-      .then(res => res.json()).then(response => { alert(response.message); streamRelationalTableData(currentContextTableName); loadDashboardMetricsOverviewPanel(); });
+      fetch(PRODUCTION_GAS_ENDPOINT_URL, { 
+        method: "POST", 
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: route, mode: "add", data: payload }) 
+      })
+      .then(res => res.json())
+      .then(response => { 
+        alert(response.message); 
+        streamRelationalTableData(currentContextTableName); 
+        loadDashboardMetricsOverviewPanel(); 
+      }).catch(err => alert("Mutation stream encountered processing errors."));
     }
 
     function triggerMatrixRecalculationCommand() {
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: "generateReport" }) }).then(res => res.json()).then(d => alert(d.message));
+      fetch(PRODUCTION_GAS_ENDPOINT_URL, { 
+        method: "POST", 
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "generateReport" }) 
+      })
+      .then(res => res.json())
+      .then(d => alert(d.message))
+      .catch(err => alert("Report layout creation processing took longer than expected. Check sheet manually."));
     }
+    
     function executeProfileLogout() { location.reload(); }
   </script>
 </body>
