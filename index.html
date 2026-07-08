@@ -281,30 +281,32 @@
     }
 
     function loadAttendanceLogStatementLedger() {
-      var container = document.getElementById("historyLogContainer");
+      var payloadContainerElement = document.getElementById("historyLogContainer");
+      
       fetch(PRODUCTION_GAS_ENDPOINT_URL, {
         method: "POST",
         mode: "cors",
         body: JSON.stringify({ action: "fetchHistory", employeeId: globalSessionData.employeeId })
       })
       .then(res => res.json())
-      .then(jsonRes => {
-        if (jsonRes.status === "Success" && jsonRes.data.length > 0) {
-          container.innerHTML = "";
-          jsonRes.data.forEach(function(item) {
-            var colorBadge = item.type === "In" ? "bg-success" : "bg-danger";
-            var locationWarningColor = item.status === "Location Mismatch" ? "text-danger font-weight-bold" : "text-muted";
-            var itemTemplate = `
+      .then(packetResponse => {
+        if(packetResponse.status === "Success" && packetResponse.data.length > 0) {
+          payloadContainerElement.innerHTML = "";
+          packetResponse.data.forEach(function(item) {
+            var colorBadgeClass = item.type === "In" ? "bg-success" : "bg-danger";
+            var locationAlertColorClass = item.status === "Location Mismatch" ? "text-danger fw-bold" : "text-muted";
+            
+            var rowLayoutTemplateString = `
               <div class="list-group-item p-3 d-flex justify-content-between align-items-center">
                 <div>
-                  <span class="badge ${colorBadge} me-2">${item.type}</span>
+                  <span class="badge ${colorBadgeClass} me-2">${item.type}</span>
                   <span class="fw-bold">${item.time}</span>
                   <small class="text-muted d-block mt-1">Calendar Target Date: ${item.date}</small>
                 </div>
-                <span class="small ${locationWarningColor}">${item.status}</span>
+                <span class="small ${locationAlertColorClass}">${item.status}</span>
               </div>
             `;
-            container.innerHTML += itemTemplate;
+            payloadContainerElement.innerHTML += rowLayoutTemplateString;
           });
         }
       })
@@ -319,7 +321,6 @@
       location.reload();
     }
 
-    // TYPO BUG RESOLVED: Term parameters cleanly bind parameter references
     function toggleLoadingOverlay(show, message) {
       var overlay = document.getElementById("loadingOverlay");
       var loaderText = document.getElementById("loaderMessage");
