@@ -41,7 +41,7 @@
   <div class="container px-3">
     <div class="row justify-content-center">
       <div class="col-12 col-sm-10 col-md-7 col-lg-5">
-        
+         
         <div id="loginCard" class="card app-card p-4">
           <h4 class="fw-bold text-center mb-1">Employee Login</h4>
           <p class="text-muted small text-center mb-4">Honda Employee Attendance Management System</p>
@@ -102,7 +102,7 @@
           </div>
 
           <hr class="my-3">
-          <h6 class="fw-bold text-secondary mb-2">Recent Logged History Logs Logs</h6>
+          <h6 class="fw-bold text-secondary mb-2">Recent Logged History Logs</h6>
           <div class="list-group list-group-flush border rounded-3 scroll-logs" id="historyLogGroupStack"></div>
         </div>
 
@@ -113,7 +113,6 @@
   <canvas id="processingBufferCanvas" class="d-none"></canvas>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   <script>
-    // CRITICAL CORE SCRIPT SYSTEM URL LINK PASTE BOUND ARRAYS LOCATION
     const PRODUCTION_GAS_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbwkVf2-5-yZrcfa-BfJJMgDq1saP95iITooTE3gRwx4tvv9MfX1eQR67fWoDW1dcMwtpw/exec";
 
     var globalActiveUserSession = null;
@@ -122,22 +121,34 @@
     var activeHardwareCameraStreamInstance = null;
     var activeGlobalHistoryLogsArrayStore = [];
 
-    window.onload = function() { initiateDeviceSatelliteWatch(); evaluateLocalSessionPersistenceCache(); };
+    window.onload = function() { 
+      initiateDeviceSatelliteWatch(); 
+      evaluateLocalSessionPersistenceCache(); 
+    };
 
     function initiateDeviceSatelliteWatch() {
       if (navigator.geolocation) {
         navigator.geolocation.watchPosition(function(pos) {
-          currentDeviceLat = pos.coords.latitude; currentDeviceLng = pos.coords.longitude;
+          currentDeviceLat = pos.coords.latitude; 
+          currentDeviceLng = pos.coords.longitude;
           document.getElementById("lblGpsTelemetryString").innerText = currentDeviceLat.toFixed(5) + " , " + currentDeviceLng.toFixed(5);
-          var dot = document.getElementById("gpsTrackingDotBadge"); dot.className = "badge bg-success text-white px-2 py-1"; dot.innerText = "GPS Connected";
-          dot.style.width = "auto"; dot.style.height = "auto";
-        }, function(e) { document.getElementById("lblGpsTelemetryString").innerText = "Satellite Position Engine Restricted."; }, { enableHighAccuracy: true });
+          var dot = document.getElementById("gpsTrackingDotBadge"); 
+          dot.className = "badge bg-success text-white px-2 py-1"; 
+          dot.innerText = "GPS Connected";
+          dot.style.width = "auto"; 
+          dot.style.height = "auto";
+        }, function(e) { 
+          document.getElementById("lblGpsTelemetryString").innerText = "Satellite Position Engine Restricted."; 
+        }, { enableHighAccuracy: true });
       }
     }
 
     function evaluateLocalSessionPersistenceCache() {
       const cache = localStorage.getItem("HEAMS_USER_SESSION");
-      if (cache) { globalActiveUserSession = JSON.parse(cache); launchEmployeeDashboardView(); }
+      if (cache) { 
+        globalActiveUserSession = JSON.parse(cache); 
+        launchEmployeeDashboardView(); 
+      }
     }
 
     function fireSecureLoginRequest(e) {
@@ -150,14 +161,28 @@
       const hashedPass = CryptoJS.SHA256(pass).toString(CryptoJS.enc.Hex);
 
       fetch(PRODUCTION_GAS_ENDPOINT_URL, {
-        method: "POST", mode: "cors",
+        method: "POST",
+        // Using text/plain prevents the web browser from dropping connections on modern strict CORS checking extensions
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: "employeeLogin", username: uid, password: hashedPass })
       })
-      .then(res => res.json()).then(data => {
+      .then(res => res.json())
+      .then(data => {
         toggleLoadingOverlayIndicator(false, "");
-        if (data.status === "Success") { globalActiveUserSession = data; localStorage.setItem("HEAMS_USER_SESSION", JSON.stringify(globalActiveUserSession)); launchEmployeeDashboardView(); }
-        else { errBox.innerText = data.message; errBox.classList.remove("d-none"); }
-      }).catch(e => { toggleLoadingOverlayIndicator(false, ""); errBox.innerText = "Connection link mapping timeout boundary error."; errBox.classList.remove("d-none"); });
+        if (data.status === "Success") { 
+          globalActiveUserSession = data; 
+          localStorage.setItem("HEAMS_USER_SESSION", JSON.stringify(globalActiveUserSession)); 
+          launchEmployeeDashboardView(); 
+        } else { 
+          errBox.innerText = data.message; 
+          errBox.classList.remove("d-none"); 
+        }
+      })
+      .catch(e => { 
+        toggleLoadingOverlayIndicator(false, ""); 
+        errBox.innerText = "Connection link mapping timeout boundary error."; 
+        errBox.classList.remove("d-none"); 
+      });
     }
 
     function launchEmployeeDashboardView() {
@@ -167,50 +192,92 @@
       document.getElementById("lblStaffName").innerText = globalActiveUserSession.employeeName;
       document.getElementById("lblStaffIdMeta").innerText = globalActiveUserSession.employeeId;
       document.getElementById("lblOfficeLocationNode").innerText = globalActiveUserSession.branch;
-      bindCameraStreamToViewport(); loadAttendanceLogStatementLedger();
+      bindCameraStreamToViewport(); 
+      loadAttendanceLogStatementLedger();
     }
 
     function bindCameraStreamToViewport() {
-      navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: "user", width: 640, height: 480 } })
-        .then(function(s) { activeHardwareCameraStreamInstance = s; document.getElementById("videoStream").srcObject = s; });
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: "user", width: 640, height: 480 } })
+          .then(function(s) { 
+            activeHardwareCameraStreamInstance = s; 
+            document.getElementById("videoStream").srcObject = s; 
+          })
+          .catch(err => console.warn("Camera initializing blocked or unavailable:", err));
+      }
     }
 
     function executeSelfiePunchLogRequest() {
       if (!currentDeviceLat || !currentDeviceLng) return alert("Position lock parameters matching timeout sync. Try again in 3 seconds.");
-      var canvas = document.getElementById("processingBufferCanvas"); var video = document.getElementById("videoStream"); var context = canvas.getContext("2d");
+      var canvas = document.getElementById("processingBufferCanvas"); 
+      var video = document.getElementById("videoStream"); 
+      var context = canvas.getContext("2d");
+      
       toggleLoadingOverlayIndicator(true, "Encoding static image compression string structures layers...");
-      canvas.width = 640; canvas.height = 480;
-      context.translate(canvas.width, 0); context.scale(-1, 1);
+      canvas.width = 640; 
+      canvas.height = 480;
+      context.translate(canvas.width, 0); 
+      context.scale(-1, 1);
       context.drawImage(video, 0, 0, 640, 480);
-      const base64Str = canvas.toDataURL("image/jpeg", 0.6);
+      
+      const base64Str = canvas.toDataURL("image/jpeg", 0.5); // Dropped resolution factor slightly to protect memory port pipe strings
       const type = document.getElementById("punchActionTypeSelect").value;
 
       fetch(PRODUCTION_GAS_ENDPOINT_URL, {
-        method: "POST", mode: "cors",
-        body: JSON.stringify({ action: "executePunchTransaction", employeeId: globalActiveUserSession.employeeId, employeeName: globalActiveUserSession.employeeName, branch: globalActiveUserSession.branch, department: "Sales", punchType: type, lat: currentDeviceLat, lng: currentDeviceLng, base64ImageBlob: base64Str })
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ 
+          action: "executePunchTransaction", 
+          employeeId: globalActiveUserSession.employeeId, 
+          employeeName: globalActiveUserSession.employeeName, 
+          branch: globalActiveUserSession.branch, 
+          department: globalActiveUserSession.department || "Sales", 
+          punchType: type, 
+          lat: currentDeviceLat, 
+          lng: currentDeviceLng, 
+          base64ImageBlob: base64Str 
+        })
       })
-      .then(res => res.json()).then(d => { toggleLoadingOverlayIndicator(false, ""); alert(d.message); if (d.status === "Success") loadAttendanceLogStatementLedger(); })
-      .catch(e => { toggleLoadingOverlayIndicator(false, ""); alert("Payload submission transmission link gateway break error mapping profile."); });
+      .then(res => res.json())
+      .then(d => { 
+        toggleLoadingOverlayIndicator(false, ""); 
+        alert(d.message); 
+        if (d.status === "Success") loadAttendanceLogStatementLedger(); 
+      })
+      .catch(e => { 
+        toggleLoadingOverlayIndicator(false, ""); 
+        alert("Payload submission transmission link gateway break error mapping profile."); 
+      });
     }
 
     function loadAttendanceLogStatementLedger() {
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: "fetchHistory", employeeId: globalActiveUserSession.employeeId }) })
-      .then(res => res.json()).then(json => {
+      fetch(PRODUCTION_GAS_ENDPOINT_URL, { 
+        method: "POST", 
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "fetchHistory", employeeId: globalActiveUserSession.employeeId }) 
+      })
+      .then(res => res.json())
+      .then(json => {
         if (json.status === "Success") {
           activeGlobalHistoryLogsArrayStore = json.data;
-          var container = document.getElementById("historyLogGroupStack"); container.innerHTML = "";
+          var container = document.getElementById("historyLogGroupStack"); 
+          container.innerHTML = "";
           json.data.forEach(function(item) {
             container.innerHTML += `<div class="list-group-item p-2 d-flex justify-content-between align-items-center"><div><span class="badge ${item.type==="In"?"bg-success":"bg-danger"} me-2">${item.type}</span><b>${item.time}</b><small class="text-muted d-block">${item.date}</small></div><span class="small">${item.status}</span></div>`;
           });
         }
-      });
+      }).catch(err => console.error("Async history tracking dropped:", err));
     }
 
     function renderFactoTimeEmployeeCalendarGrid() {
-      var grid = document.getElementById("factoCalendarGridContainer"); grid.innerHTML = "";
-      var cursor = new Date(); var totalDays = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
+      var grid = document.getElementById("factoCalendarGridContainer"); 
+      grid.innerHTML = "";
+      var cursor = new Date(); 
+      var totalDays = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
       for (var day = 1; day <= totalDays; day++) {
-        var node = document.createElement("div"); node.className = "calendar-day-node"; node.innerHTML = `<span>${day}</span>`;
+        var node = document.createElement("div"); 
+        node.className = "calendar-day-node"; 
+        node.innerHTML = `<span>${day}</span>`;
         var dStr = (day < 10 ? "0" + day : day) + "-" + cursor.toLocaleString('en-US', { month: 'short' }) + "-" + cursor.getFullYear();
         var present = activeGlobalHistoryLogsArrayStore.some(log => log.date.toString().toLowerCase().trim() === dStr.toLowerCase().trim());
         if (present) node.classList.add("node-present"); else node.classList.add("node-absent");
@@ -220,13 +287,18 @@
 
     function triggerProfileLogout() {
       if (activeHardwareCameraStreamInstance) activeHardwareCameraStreamInstance.getTracks().forEach(t => t.stop());
-      localStorage.removeItem("HEAMS_USER_SESSION"); location.reload();
+      localStorage.removeItem("HEAMS_USER_SESSION"); 
+      location.reload();
     }
 
     function toggleLoadingOverlayIndicator(show, msg) {
       var overlay = document.getElementById("loadingOverlay");
-      if (show) { document.getElementById("loaderMessage").innerText = msg; overlay.classList.remove("hidden"); }
-      else overlay.classList.add("hidden");
+      if (show) { 
+        document.getElementById("loaderMessage").innerText = msg; 
+        overlay.classList.remove("hidden"); 
+      } else {
+        overlay.classList.add("hidden");
+      }
     }
   </script>
 </body>
