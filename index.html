@@ -3,151 +3,181 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Honda Employee Attendance Management System (HEAMS)</title>
+  <title>HEAMS Pro Portal - FactoTime Dealership Edition</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root { --honda-red: #cc0000; --dark-slate: #212529; --soft-bg: #f8f9fa; --card-bg: #ffffff; --text-color: #212529; }
-    [data-theme="dark"] { --soft-bg: #121212; --card-bg: #1e1e1e; --text-color: #f8f9fa; --dark-slate: #000000; }
-    body { background-color: var(--soft-bg); color: var(--text-color); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: all 0.3s ease; }
+    :root { --honda-red: #cc0000; --dark-slate: #1a1e21; --body-bg: #f4f6f9; --card-bg: #ffffff; --text-main: #212529; }
+    [data-theme="dark"] { --body-bg: #121212; --card-bg: #1e1e1e; --text-main: #f8f9fa; --dark-slate: #000000; }
+    body { background-color: var(--body-bg); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; transition: background 0.3s; }
     .navbar-honda { background-color: var(--dark-slate); border-bottom: 4px solid var(--honda-red); }
-    .honda-brand { font-weight: 900; background: var(--honda-red); color: white !important; padding: 5px 15px; border-radius: 3px; }
-    .app-card { background: var(--card-bg); border: none; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; margin-top: 20px; }
-    .btn-honda { background-color: var(--honda-red); color: white; font-weight: bold; border: none; }
-    .btn-honda:hover { background-color: #b30000; color: white; }
-    .camera-box { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 8px; overflow: hidden; }
+    .brand-badge { font-weight: 900; background: var(--honda-red); color: #fff !important; padding: 4px 12px; border-radius: 4px; }
+    .app-card { background: var(--card-bg); border: none; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); overflow: hidden; margin-top: 20px; }
+    .btn-honda { background-color: var(--honda-red); color: white; font-weight: 700; border: none; padding: 12px; }
+    .btn-honda:hover { background-color: #aa0000; color: white; }
+    .camera-viewport { width: 100%; max-width: 440px; aspect-ratio: 4/3; background: #000; border-radius: 12px; overflow: hidden; position: relative; }
     #videoStream { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    .calendar-matrix-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 15px; }
+    .calendar-day-node { background: rgba(0,0,0,0.04); border-radius: 8px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; position: relative; color: var(--text-main); }
+    .node-present { background-color: #198754 !important; color: #ffffff !important; }
+    .node-absent { background-color: #dc3545 !important; color: #ffffff !important; }
+    .scroll-logs { max-height: 280px; overflow-y: auto; }
     .hidden { display: none !important; }
-    .overlay-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
-    .stat-card { border-left: 4px solid var(--honda-red); }
+    .loader-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
+    .stat-box { border-left: 4px solid var(--honda-red); }
   </style>
 </head>
 <body>
 
-  <div id="loadingOverlay" class="overlay-loader hidden">
-    <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;"></div>
-    <span class="mt-3 fw-bold" id="loaderMessage">Processing Operational Framework Handshake...</span>
+  <div id="loadingOverlay" class="loader-screen hidden">
+    <div class="spinner-border text-danger" role="status" style="width: 3.5rem; height: 3.5rem;"></div>
+    <span class="mt-3 fw-bold shadow-sm" id="loaderMessage">Connecting Data Gateway Pipeline...</span>
   </div>
 
   <nav class="navbar navbar-dark navbar-honda shadow-sm">
     <div class="container-fluid">
-      <span class="navbar-brand honda-brand">HONDA</span>
-      <span class="text-white small fw-semibold" id="liveClock">HEAMS Engine</span>
+      <span class="navbar-brand fw-bold"><span class="brand-badge me-2">HONDA</span> HEAMS Pro</span>
+      <span class="text-white small d-none d-md-inline fw-semibold" id="clockString">FactoTime Sync Console</span>
       <div>
-        <button class="btn btn-sm btn-outline-warning me-2" onclick="toggleThemeStyleMode()">🌓 Theme</button>
-        <button id="btnLogout" class="btn btn-sm btn-outline-light hidden" onclick="triggerProfileLogout()">Logout</button>
+        <button class="btn btn-sm btn-outline-warning me-2" onclick="toggleInterfaceColorTheme()">🌓 Mode</button>
+        <button id="btnLogout" class="btn btn-sm btn-outline-light hidden" onclick="triggerProfileLogout()">Sign Out</button>
       </div>
     </div>
   </nav>
 
   <div class="container py-3">
     <div class="row justify-content-center">
-      <div class="col-12" id="injectionViewportPane">
+      <div class="col-12" id="viewViewportMasterAnchor">
 
-        <div id="loginCard" class="card app-card mx-auto" style="max-width: 450px;">
-          <div class="card-body p-4">
-            <div class="text-center mb-4">
-              <h4 class="fw-bold m-0">HEAMS Gateway Auth</h4>
-              <p class="text-muted small">Honda Employee Attendance Management System</p>
-            </div>
+        <div id="loginCard" class="card app-card mx-auto shadow-sm" style="max-width: 440px;">
+          <div class="card-body p-4 p-sm-5">
+            <h4 class="fw-bold text-center mb-1">Console Gate Access</h4>
+            <p class="text-muted small text-center mb-4">Honda Employee Attendance Management System</p>
             <div class="mb-3">
-              <label class="form-label small fw-bold">Select Console System Portal Target Role</label>
-              <select id="authRoleSelect" class="form-select">
-                <option value="Employee">Employee Portal Workspace</option>
-                <option value="Admin">Super Administrative Console Terminal</option>
+              <label class="form-label small fw-bold">Select Active Work Console</label>
+              <select id="portalRoleDropdown" class="form-select">
+                <option value="Employee">Employee Interactive Self-Portal</option>
+                <option value="Admin">Management Administrative Terminal</option>
               </select>
             </div>
-            <div class="alert alert-danger d-none" id="loginErrorAlert"></div>
-            <form onsubmit="handlePortalAuthenticationRequest(event)">
+            <div class="alert alert-danger d-none" id="loginErrorFrame"></div>
+            <form onsubmit="fireSecureLoginAuthenticationRequest(event)">
               <div class="mb-3">
-                <label class="form-label small fw-bold">Identification Username ID</label>
-                <input type="text" id="userIdField" class="form-control" placeholder="e.g. EMP101 / admin" required>
+                <label class="form-label small fw-bold">Identification ID Account Handle</label>
+                <input type="text" id="usernameInputField" class="form-control form-control-lg" placeholder="e.g. EMP101 / admin" required>
               </div>
               <div class="mb-4">
                 <label class="form-label small fw-bold">Security Password Pin</label>
-                <input type="password" id="userPasswordField" class="form-control" placeholder="••••••••" required>
+                <input type="password" id="passwordInputField" class="form-control form-control-lg" placeholder="••••••••" required>
               </div>
-              <button type="submit" class="w-100 btn btn-honda btn-lg rounded-3">Access Portal Account Console</button>
+              <button type="submit" class="w-100 btn btn-honda btn-lg rounded-3">Establish Gateway Handshake</button>
             </form>
           </div>
         </div>
 
-        <div id="employeeDashboard" class="card app-card hidden mx-auto" style="max-width: 550px;">
+        <div id="employeeDashboard" class="card app-card hidden mx-auto" style="max-width: 600px;">
           <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">
+            
+            <div class="d-flex flex-wrap justify-content-between align-items-center pb-3 mb-3 border-bottom g-2">
               <div>
-                <h5 class="fw-bold mb-0 text-danger" id="txtStaffName">---</h5>
-                <span class="small" id="txtStaffMeta">---</span>
+                <h4 class="fw-bold text-danger mb-0" id="lblStaffName">---</h4>
+                <span class="text-muted small fw-semibold" id="lblStaffIdMeta">---</span>
               </div>
-              <span class="badge bg-dark p-2" id="txtBranchSync">Syncing Parameters...</span>
+              <span class="badge bg-dark py-2 px-3 rounded-pill" id="lblOfficeLocationNode">Syncing Office Parameters...</span>
             </div>
-            <div class="p-3 bg-light text-dark rounded-3 mb-3 d-flex justify-content-between align-items-center">
-              <div>
-                <small class="text-muted d-block fw-semibold">GPS Localization Status Lock</small>
-                <span class="fw-bold small" id="txtGeoCoordinates">Scanning Satellites...</span>
+
+            <ul class="nav nav-pills nav-fill mb-4 bg-light p-1 rounded-3" id="pills-tab" role="tablist">
+              <li class="nav-item"><button class="nav-link active fw-bold" id="tab-punch-link" data-bs-toggle="pill" data-bs-target="#panel-punch" type="button">🕒 Punch Console</button></li>
+              <li class="nav-item"><button class="nav-link fw-bold" id="tab-calendar-link" data-bs-toggle="pill" data-bs-target="#panel-calendar" type="button" onclick="renderFactoTimeEmployeeCalendarGrid()">📊 Monthly Calendar Report</button></li>
+            </ul>
+
+            <div class="tab-content">
+              <div class="tab-pane fade show active" id="panel-punch">
+                <div class="row g-3 align-items-center mb-4 bg-light p-3 rounded-3 mx-0 text-dark">
+                  <div class="col-8">
+                    <small class="text-muted d-block fw-semibold">GPS Telemetry Core Satellite Tracking Status</small>
+                    <span class="fw-bold text-truncate d-block small" id="lblGpsTelemetryString">Searching satellite metrics...</span>
+                  </div>
+                  <div class="col-4 text-end">
+                    <span id="gpsTrackingDotBadge" class="spinner-grow text-warning" style="width:1.2rem; height:1.2rem;"></span>
+                  </div>
+                </div>
+                <div class="mb-4 text-center">
+                  <label class="form-label small fw-bold d-block text-start mb-2">Punch Event Context Selection</label>
+                  <select id="punchActionTypeSelect" class="form-select mb-3 form-select-lg">
+                    <option value="In">Punch IN Status Log</option>
+                    <option value="Out">Punch OUT Status Log</option>
+                  </select>
+                  <div class="camera-viewport mx-auto mb-3 shadow border shadow-sm">
+                    <video id="videoStream" autoplay playsinline muted></video>
+                  </div>
+                  <button class="w-100 btn btn-success btn-lg py-3 fw-bold rounded-3 shadow" onclick="executeSelfiePunchLogRequest()">Log Biometric Selfie Verification Punch</button>
+                </div>
               </div>
-              <span id="gpsStatusDot" class="spinner-grow text-warning" style="width:1rem; height:1rem;"></span>
-            </div>
-            <div class="mb-4">
-              <label class="form-label small fw-bold">Select Active Punch Event Profile</label>
-              <select id="punchActionSelect" class="form-select mb-3">
-                <option value="In">Punch IN Record</option>
-                <option value="Out">Punch OUT Record</option>
-              </select>
-              <div class="camera-box mb-3 shadow-sm border mx-auto">
-                <video id="videoStream" autoplay playsinline muted></video>
+
+              <div class="tab-pane fade" id="panel-calendar">
+                <h5 class="fw-bold mb-1">My Attendance Heat Map View</h5>
+                <p class="text-muted small mb-3">Real-time breakdown of presence ledger sheets logs maps.</p>
+                <div class="d-flex gap-3 mb-3 small fw-bold">
+                  <div><span class="badge bg-success me-1"> </span> Present (P)</div>
+                  <div><span class="badge bg-danger me-1"> </span> Absent (A) / Unlogged</div>
+                </div>
+                <div class="calendar-matrix-grid" id="factoCalendarGridContainer"></div>
               </div>
-              <button type="button" class="w-100 btn btn-success btn-lg py-3 fw-bold rounded-3 shadow-sm" onclick="firePunchLogRequest()">Capture Biometric Selfie & Punch</button>
             </div>
-            <hr>
+
+            <hr class="my-4">
             <div class="mb-3">
               <h6 class="fw-bold text-secondary">Request Leave Filing Statement</h6>
               <div class="row g-2">
                 <div class="col-6"><input type="date" id="leaveFromDate" class="form-control form-control-sm"></div>
                 <div class="col-6"><input type="date" id="leaveToDate" class="form-control form-control-sm"></div>
-                <div class="col-12"><input type="text" id="leaveReason" class="form-control form-control-sm" placeholder=" Furlough Tracking Profile Cause Statement Code Reason..."></div>
-                <div class="col-12"><button class="btn btn-sm btn-dark w-100" onclick="submitLeaveFilingApplication()">Submit Leave Registration File</button></div>
+                <div class="col-12"><input type="text" id="leaveReason" class="form-control form-control-sm" placeholder="Reason for Leave Request..."></div>
+                <div class="col-12"><button class="btn btn-sm btn-dark w-100 fw-bold" onclick="submitLeaveFilingApplication()">Submit Leave Registration File</button></div>
               </div>
             </div>
-            <hr>
-            <h6 class="fw-bold text-secondary mb-2">Punch Logs System Ledger (Last 30 Days)</h6>
-            <div class="list-group border rounded-3 scroll-logs" id="historyLogContainer"></div>
+            <hr class="my-4">
+            <h6 class="fw-bold text-secondary mb-2">Recent Activity Ledger Rows Log Streams</h6>
+            <div class="list-group list-group-flush border rounded-3 scroll-logs" id="historyLogGroupStack"></div>
+
           </div>
         </div>
 
         <div id="adminDashboard" class="hidden">
           <div class="row g-3 mb-4">
-            <div class="col-6 col-lg-3"><div class="card app-card stat-card p-3 m-0"><small class="text-muted fw-bold">Total Personnel</small><h3 class="fw-bold m-0 text-primary" id="statEmployees">0</h3></div></div>
-            <div class="col-6 col-lg-3"><div class="card app-card stat-card p-3 m-0"><small class="text-muted fw-bold">Active Branches</small><h3 class="fw-bold m-0 text-success" id="statBranches">0</h3></div></div>
-            <div class="col-6 col-lg-3"><div class="card app-card stat-card p-3 m-0"><small class="text-muted fw-bold">Present Today</small><h3 class="fw-bold m-0 text-info" id="statPresent">0</h3></div></div>
-            <div class="col-6 col-lg-3"><div class="card app-card stat-card p-3 m-0"><small class="text-muted fw-bold">GPS Fault Flags</small><h3 class="fw-bold m-0 text-danger" id="statMismatches">0</h3></div></div>
+            <div class="col-6 col-lg-3"><div class="card app-card stat-box p-3 m-0 shadow-sm"><small class="text-muted fw-bold">Roster Personnel</small><h2 class="fw-bold m-0 text-primary" id="mTotalStaff">0</h2></div></div>
+            <div class="col-6 col-lg-3"><div class="card app-card stat-box p-3 m-0 shadow-sm"><small class="text-muted fw-bold">Branches Managed</small><h2 class="fw-bold m-0 text-success" id="mTotalBranches">0</h2></div></div>
+            <div class="col-6 col-lg-3"><div class="card app-card stat-box p-3 m-0 shadow-sm"><small class="text-muted fw-bold">Present Today</small><h2 class="fw-bold m-0 text-info" id="mPresentToday">0</h2></div></div>
+            <div class="col-6 col-lg-3"><div class="card app-card stat-box p-3 m-0 shadow-sm"><small class="text-muted fw-bold">GPS Fault Flags</small><h2 class="fw-bold m-0 text-danger" id="mMismatchToday">0</h2></div></div>
           </div>
+          
           <div class="row g-3 mb-4">
             <div class="col-12 col-md-6">
-              <div class="card app-card p-3 m-0">
-                <h6 class="fw-bold text-secondary">Dealership Core Operation Control Toggles Panel</h6>
-                <div class="d-flex flex-wrap gap-2 pt-2">
-                  <button class="btn btn-sm btn-primary" onclick="loadAdminManagementLedgerPanel('Credentials')">👥 Personnel Records Manager</button>
-                  <button class="btn btn-sm btn-success" onclick="loadAdminManagementLedgerPanel('Branches')">📍 Branch Geofence Editor</button>
-                  <button class="btn btn-sm btn-warning text-dark" onclick="loadAdminManagementLedgerPanel('Leave')">📝 Leave Workflow Ledger</button>
-                  <button class="btn btn-sm btn-info text-white" onclick="loadAdminManagementLedgerPanel('Attendance')">📊 Attendance Audit Log Report</button>
-                  <button class="btn btn-sm btn-danger" onclick="triggerRecalculateMatrixSummary()">⚙️ Compile Matrix Sheet Summary View</button>
+              <div class="card app-card p-4 m-0 h-100">
+                <h5 class="fw-bold text-dark mb-3">Administrative Control Panel</h5>
+                <div class="d-flex flex-wrap gap-2">
+                  <button class="btn btn-sm btn-dark px-3 py-2 fw-bold" onclick="dispatchAdminTableQuery('Credentials')">👥 Personnel Records Manager</button>
+                  <button class="btn btn-sm btn-success px-3 py-2 fw-bold" onclick="dispatchAdminTableQuery('Branches')">📍 Branch Geofence Editor</button>
+                  <button class="btn btn-sm btn-warning px-3 py-2 fw-bold text-dark" onclick="dispatchAdminTableQuery('Leave')">📝 Leave Application Ledger</button>
+                  <button class="btn btn-sm btn-info px-3 py-2 fw-bold text-white" onclick="dispatchAdminTableQuery('Attendance')">📊 Attendance Audit Log Report</button>
+                  <button class="btn btn-sm btn-danger px-3 py-2 fw-bold w-100 mt-2" onclick="triggerBackgroundReportGridRecalc()">⚙️ Compile Horizontal Matrix Sheets Report</button>
                 </div>
               </div>
             </div>
             <div class="col-12 col-md-6">
-              <div class="card app-card p-3 m-0">
-                <h6 class="fw-bold text-secondary">Honda Dealership Branch Analytics Performance Visualizations</h6>
-                <div style="max-height: 140px; position: relative;"><canvas id="branchMetricsChartBarCanvas"></canvas></div>
+              <div class="card app-card p-4 m-0 h-100">
+                <h6 class="fw-bold text-secondary mb-2">Dealership Attendance Operational Overview</h6>
+                <div style="max-height: 160px; position: relative;"><canvas id="adminMetricsChartCanvas"></canvas></div>
               </div>
             </div>
           </div>
-          <div id="adminCrudWorkspaceCard" class="card app-card p-4 hidden">
+
+          <div id="adminTableWorkspaceWrapper" class="card app-card p-4 hidden">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="fw-bold text-danger m-0" id="lblSelectedLedgerTitle">Active Managed Entity Table Ledger</h5>
-              <button class="btn btn-sm btn-success" id="btnAddNewRowEntityItem" onclick="revealEntityFormMutationModal()">➕ Insert Entry Record Row Asset</button>
+              <h5 class="fw-bold text-danger m-0" id="lblGridTitle">Active Controlled Database Array</h5>
+              <button class="btn btn-sm btn-success fw-bold" id="btnAddNewRowEntityItem" onclick="revealEntityFormMutationModal()">➕ Insert Entry Record Row Asset</button>
             </div>
-            <div class="table-responsive"><table class="table table-bordered table-striped text-center align-middle small" id="adminDataTableTargetGrid"></table></div>
+            <div class="table-responsive"><table class="table table-bordered table-striped align-middle small text-center" id="domOutputGridTargetTable"></table></div>
           </div>
         </div>
 
@@ -155,78 +185,80 @@
     </div>
   </div>
 
+  <canvas id="processingBufferCanvas" class="d-none"></canvas>
   <div class="modal fade" id="entityMutationFormModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="background: var(--card-bg); color: var(--text-color);">
-        <div class="modal-header"><h5 class="modal-title fw-bold text-danger" id="lblFormMutationModalHeader">Modify Entry Row Context parameters</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body"><form id="entityMutationDataFormTargetPayloadBlock" onsubmit="fireAdministrativeMutationRequestPayload(event)"></form></div>
+      <div class="modal-content" style="background: var(--card-bg); color: var(--text-main);">
+        <div class="modal-header"><h5 class="modal-title fw-bold text-danger" id="lblFormMutationModalHeader">Modify Entry Row</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><form id="entityMutationFormTarget" onsubmit="fireAdministrativeMutationRequestPayload(event)"></form></div>
       </div>
     </div>
   </div>
 
-  <canvas id="offscreenCanvas" class="d-none"></canvas>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
   
   <script>
+    // DIRECT RUNTIME ROUTING ENDPOINT TARGET URL
     const PRODUCTION_GAS_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbwkVf2-5-yZrcfa-BfJJMgDq1saP95iITooTE3gRwx4tvv9MfX1eQR67fWoDW1dcMwtpw/exec";
 
     var globalActiveUserSession = null;
     var currentDeviceLat = null;
     var currentDeviceLng = null;
     var activeHardwareCameraStreamInstance = null;
-    var activeReportingMetricsChartInstance = null;
+    var activeGlobalHistoryLogsArrayStore = [];
+    var adminChartInstance = null;
     var currentContextAdminTableName = null;
     var activeRowArrayPayloadReferenceStore = [];
 
     window.onload = function() {
-      setInterval(() => { document.getElementById("liveClock").innerText = new Date().toLocaleTimeString('en-IN'); }, 1000);
+      setInterval(() => { document.getElementById("clockString").innerText = new Date().toLocaleTimeString('en-IN'); }, 1000);
       initiateDeviceSatelliteWatch();
       evaluateLocalSessionPersistenceCache();
     };
 
-    function toggleThemeStyleMode() {
-      const mode = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", mode);
+    function toggleInterfaceColorTheme() {
+      const currentMode = document.documentElement.getAttribute("data-theme");
+      document.documentElement.setAttribute("data-theme", currentMode === "dark" ? "light" : "dark");
     }
 
     function initiateDeviceSatelliteWatch() {
       if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(
-          function(pos) {
-            currentDeviceLat = pos.coords.latitude; currentDeviceLng = pos.coords.longitude;
-            document.getElementById("txtGeoCoordinates").innerText = currentDeviceLat.toFixed(5) + " , " + currentDeviceLng.toFixed(5);
-            var dot = document.getElementById("gpsStatusDot"); dot.className = "badge bg-success text-white px-2 py-1"; dot.innerText = "Sync Active Lock";
-            dot.style.width = "auto"; dot.style.height = "auto";
-          }, function(err) {
-            document.getElementById("txtGeoCoordinates").innerText = "Satellite Position Engine Restricted.";
-            var dot = document.getElementById("gpsStatusDot"); dot.className = "badge bg-danger text-white px-2 py-1"; dot.innerText = "GPS Error";
-            dot.style.width = "auto"; dot.style.height = "auto";
-          }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-        );
+        navigator.geolocation.watchPosition(function(pos) {
+          currentDeviceLat = pos.coords.latitude; currentDeviceLng = pos.coords.longitude;
+          var label = document.getElementById("lblGpsTelemetryString");
+          if(label) label.innerText = currentDeviceLat.toFixed(5) + " , " + currentDeviceLng.toFixed(5);
+          var dot = document.getElementById("gpsTrackingDotBadge"); 
+          if(dot) { dot.className = "badge bg-success text-white px-2 py-1"; dot.innerText = "GPS Synced"; dot.style.width = "auto"; dot.style.height = "auto"; }
+        }, function(err) {
+          var label = document.getElementById("lblGpsTelemetryString");
+          if(label) label.innerText = "Satellite Position Engine Restricted.";
+          var dot = document.getElementById("gpsTrackingDotBadge");
+          if(dot) { dot.className = "badge bg-danger text-white px-2 py-1"; dot.innerText = "GPS Blocked"; dot.style.width = "auto"; dot.style.height = "auto"; }
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
       }
     }
 
     function evaluateLocalSessionPersistenceCache() {
-      const cached = localStorage.getItem("HEAMS_PERSISTED_DATA_CACHE");
+      const cached = localStorage.getItem("HEAMS_USER_SESSION");
       if (cached) {
         try {
           globalActiveUserSession = JSON.parse(cached);
           if (globalActiveUserSession.role === "Employee") launchEmployeeDashboardView();
           else launchAdministrativeConsoleEnvironment();
-        } catch(e) { localStorage.removeItem("HEAMS_PERSISTED_DATA_CACHE"); }
+        } catch(e) { localStorage.removeItem("HEAMS_USER_SESSION"); }
       }
     }
 
-    function handlePortalAuthenticationRequest(e) {
+    function fireSecureLoginAuthenticationRequest(e) {
       e.preventDefault();
-      const role = document.getElementById("authRoleSelect").value;
-      const uid = document.getElementById("userIdField").value.trim();
-      const pass = document.getElementById("userPasswordField").value;
-      const errAlert = document.getElementById("loginErrorAlert");
+      const role = document.getElementById("portalRoleDropdown").value;
+      const uid = document.getElementById("usernameInputField").value.trim();
+      const pass = document.getElementById("passwordInputField").value;
+      const errAlert = document.getElementById("loginErrorFrame");
       
       errAlert.classList.add("d-none");
-      toggleLoadingOverlayIndicator(true, "Authenticating credentials handshake profiles...");
+      toggleLoadingOverlayIndicator(true, "Verifying crypt security network endpoints token keys...");
 
       const secureHashedHexStr = CryptoJS.SHA256(pass).toString(CryptoJS.enc.Hex);
       const actionRouteType = role === "Employee" ? "employeeLogin" : "adminLogin";
@@ -238,25 +270,31 @@
       .then(res => res.json())
       .then(data => {
         toggleLoadingOverlayIndicator(false, "");
-        if (data.status === "Success" || data.success === true) {
-          globalActiveUserSession = data.status === "Success" ? data : { role: "Employee", employeeId: uid, employeeName: data.empName, branch: data.department, department: "Sales", designation: "Executive" };
-          localStorage.setItem("HEAMS_PERSISTED_DATA_CACHE", JSON.stringify(globalActiveUserSession));
+        if (data.status === "Success") {
+          globalActiveUserSession = data;
+          localStorage.setItem("HEAMS_USER_SESSION", JSON.stringify(globalActiveUserSession));
           if (globalActiveUserSession.role === "Employee") launchEmployeeDashboardView();
           else launchAdministrativeConsoleEnvironment();
         } else {
           errAlert.innerText = data.message; errAlert.classList.remove("d-none");
         }
       })
-      .catch(err => { toggleLoadingOverlayIndicator(false, ""); errAlert.innerText = "Handshake timeout validation connection routing barrier."; errAlert.classList.remove("d-none"); });
+      .catch(err => {
+        toggleLoadingOverlayIndicator(false, "");
+        errAlert.innerText = "Network transmission error. Check backend connection configuration.";
+        errAlert.classList.remove("d-none");
+      });
     }
 
     function launchEmployeeDashboardView() {
       document.getElementById("loginCard").classList.add("hidden");
       document.getElementById("employeeDashboard").classList.remove("hidden");
       document.getElementById("btnLogout").classList.remove("hidden");
-      document.getElementById("txtStaffName").innerText = globalActiveUserSession.employeeName;
-      document.getElementById("txtStaffMeta").innerText = globalActiveUserSession.employeeId + " | " + globalActiveUserSession.designation;
-      document.getElementById("txtBranchSync").innerText = globalActiveUserSession.branch;
+      
+      document.getElementById("lblStaffName").innerText = globalActiveUserSession.employeeName;
+      document.getElementById("lblStaffIdMeta").innerText = globalActiveUserSession.employeeId + " | " + globalActiveUserSession.designation;
+      document.getElementById("lblOfficeLocationNode").innerText = globalActiveUserSession.branch;
+      
       bindCameraStreamToViewport();
       loadAttendanceLogStatementLedger();
     }
@@ -265,18 +303,19 @@
       var videoElement = document.getElementById("videoStream");
       navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } })
         .then(function(stream) { activeHardwareCameraStreamInstance = stream; videoElement.srcObject = stream; })
-        .catch(function(e) { alert("Camera interface permissions strictly required."); });
+        .catch(function(e) { alert("Camera system parameters permission configuration lock required."); });
     }
 
-    function firePunchLogRequest() {
-      if (!currentDeviceLat || !currentDeviceLng) { return alert("Awaiting high-accuracy satellite geofence track connection positioning matrices."); }
-      var canvas = document.getElementById("offscreenCanvas"); var video = document.getElementById("videoStream"); var context = canvas.getContext("2d");
-      toggleLoadingOverlayIndicator(true, "Compressing pixel validation matrix parameters frames...");
+    function executeSelfiePunchLogRequest() {
+      if (!currentDeviceLat || !currentDeviceLng) return alert("Awaiting high-accuracy connection parameters lock signature.");
+      var canvas = document.getElementById("processingBufferCanvas"); var video = document.getElementById("videoStream"); var context = canvas.getContext("2d");
+      
+      toggleLoadingOverlayIndicator(true, "Compressing pixel map verification image frame arrays...");
       canvas.width = video.videoWidth || 640; canvas.height = video.videoHeight || 480;
       context.translate(canvas.width, 0); context.scale(-1, 1);
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       const base64JPEGStringStr = canvas.toDataURL("image/jpeg", 0.75);
-      const punchType = document.getElementById("punchActionSelect").value;
+      const punchType = document.getElementById("punchActionTypeSelect").value;
 
       fetch(PRODUCTION_GAS_ENDPOINT_URL, {
         method: "POST", mode: "cors",
@@ -288,30 +327,51 @@
       })
       .then(res => res.json())
       .then(resData => { toggleLoadingOverlayIndicator(false, ""); alert(resData.message); if (resData.status === "Success") loadAttendanceLogStatementLedger(); })
-      .catch(e => { toggleLoadingOverlayIndicator(false, ""); alert("Transaction processing endpoint timeout error rule constraint."); });
+      .catch(e => { toggleLoadingOverlayIndicator(false, ""); alert("Network processing failure alert."); });
     }
 
     function loadAttendanceLogStatementLedger() {
-      var container = document.getElementById("historyLogContainer");
+      var container = document.getElementById("historyLogGroupStack");
       fetch(PRODUCTION_GAS_ENDPOINT_URL, {
         method: "POST", mode: "cors",
         body: JSON.stringify({ action: "fetchHistory", employeeId: globalActiveUserSession.employeeId })
       })
       .then(res => res.json())
       .then(jsonRes => {
-        if (jsonRes.status === "Success" && jsonRes.data.length > 0) {
+        if (jsonRes.status === "Success") {
+          activeGlobalHistoryLogsArrayStore = jsonRes.data;
           container.innerHTML = "";
           jsonRes.data.forEach(function(item) {
-            container.innerHTML += `<div class="list-group-item p-3 d-flex justify-content-between align-items-center"><div><span class="badge ${item.type==="In"?"bg-success":"bg-danger"} me-2">${item.type}</span><span class="fw-bold">${item.time}</span><small class="text-muted d-block mt-1">Target Date: ${item.date}</small></div><span class="small ${item.status==="Location Mismatch"?"text-danger font-weight-bold":"text-muted"}">${item.status}</span></div>`;
+            container.innerHTML += `<div class="list-group-item p-3 d-flex justify-content-between align-items-center"><div><span class="badge ${item.type==="In"?"bg-success":"bg-danger"} me-2">${item.type}</span><span class="fw-bold">${item.time}</span><small class="text-muted d-block mt-1">Calendar Allocation Target Date: ${item.date}</small></div><span class="small ${item.status==="Location Mismatch"?"text-danger font-weight-bold":"text-muted"}">${item.status}</span></div>`;
           });
         }
       });
     }
 
+    function renderFactoTimeEmployeeCalendarGrid() {
+      var grid = document.getElementById("factoCalendarGridContainer");
+      grid.innerHTML = "";
+      var dateCursor = new Date();
+      var totalDaysInActiveMonth = new Date(dateCursor.getFullYear(), dateCursor.getMonth() + 1, 0).getDate();
+      
+      for(var day = 1; day <= totalDaysInActiveMonth; day++) {
+        var node = document.createElement("div");
+        node.className = "calendar-day-node";
+        node.innerHTML = `<span>${day}</span>`;
+        var dateMatchStringStr = (day < 10 ? "0" + day : day) + "-" + dateCursor.toLocaleString('en-US', { month: 'short' }) + "-" + dateCursor.getFullYear();
+        var matchFound = activeGlobalHistoryLogsArrayStore.some(function(log) {
+          return log.date.toString().toLowerCase().trim() === dateMatchStringStr.toLowerCase().trim();
+        });
+        if (matchFound) node.classList.add("node-present");
+        else node.classList.add("node-absent");
+        grid.appendChild(node);
+      }
+    }
+
     function submitLeaveFilingApplication() {
       const fromD = document.getElementById("leaveFromDate").value; const toD = document.getElementById("leaveToDate").value; const reason = document.getElementById("leaveReason").value.trim();
-      if (!fromD || !toD || !reason) return alert("Please populate all Leave Application system row filing fields.");
-      toggleLoadingOverlayIndicator(true, "Registering leave statement parameters database transaction rules...");
+      if (!fromD || !toD || !reason) return alert("Please populate all fields.");
+      toggleLoadingOverlayIndicator(true, "Registering leave statement parameters...");
       fetch(PRODUCTION_GAS_ENDPOINT_URL, {
         method: "POST", mode: "cors",
         body: JSON.stringify({ action: "submitLeave", data: { EmployeeID: globalActiveUserSession.employeeId, FromDate: fromD, ToDate: toD, Reason: reason } })
@@ -329,77 +389,68 @@
     function fetchAndRenderAdministrativeMetricsDataView() {
       fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: "getAdminMetrics" }) })
       .then(res => res.json())
-      .then(metrics => {
-        if (metrics.status === "Success") {
-          document.getElementById("statEmployees").innerText = metrics.totalEmployees;
-          document.getElementById("statBranches").innerText = metrics.totalBranches;
-          document.getElementById("statPresent").innerText = metrics.presentToday;
-          document.getElementById("statMismatches").innerText = metrics.locationMismatches;
-          renderDealershipAnalyticalBranchBarChartVisuals(metrics);
+      .then(m => {
+        if (m.status === "Success") {
+          document.getElementById("mTotalStaff").innerText = m.totalEmployees;
+          document.getElementById("mTotalBranches").innerText = m.totalBranches;
+          document.getElementById("mPresentToday").innerText = m.presentToday;
+          document.getElementById("mMismatchToday").innerText = m.locationMismatches;
+          renderAdminBarChartVisuals(m);
         }
       });
     }
 
-    function renderDealershipAnalyticalBranchBarChartVisuals(metrics) {
-      var ctx = document.getElementById('branchMetricsChartBarCanvas').getContext('2d');
-      if (activeReportingMetricsChartInstance) activeReportingMetricsChartInstance.destroy();
-      activeReportingMetricsChartInstance = new Chart(ctx, {
+    function renderAdminBarChartVisuals(metrics) {
+      var ctx = document.getElementById('adminMetricsChartCanvas').getContext('2d');
+      if (adminChartInstance) adminChartInstance.destroy();
+      adminChartInstance = new Chart(ctx, {
         type: 'bar',
-        data: { labels: ['Present', 'Absent Mode Status', 'GPS Flags Faults'], datasets: [{ label: 'Operational Metrics Overview Statement Summary', data: [metrics.presentToday, metrics.absentToday, metrics.locationMismatches], backgroundColor: ['#198754', '#dc3545', '#ffc107'] }] },
+        data: { labels: ['Present Today', 'Absent Status', 'GPS Mismatches'], datasets: [{ data: [metrics.presentToday, metrics.absentToday, metrics.locationMismatches], backgroundColor: ['#198754', '#dc3545', '#ffc107'] }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
     }
 
-    function loadAdminManagementLedgerPanel(tableName) {
-      currentContextAdminTableName = tableName;
-      document.getElementById("adminCrudWorkspaceCard").classList.remove("hidden");
-      document.getElementById("lblSelectedLedgerTitle").innerText = "Active Controlled Data Ledger: Table [" + tableName + "]";
-      toggleLoadingOverlayIndicator(true, "Streaming raw database relation cells rows indices layers...");
+    function dispatchAdminTableQuery(table) {
+      currentContextAdminTableName = table;
+      document.getElementById("adminTableWorkspaceWrapper").classList.remove("hidden");
+      document.getElementById("lblGridTitle").innerText = "Database Array Managed Ledger Row Matrix View: " + table;
+      toggleLoadingOverlayIndicator(true, "Reading relational sheet cell rows keys...");
       
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: "fetchLedger", targetTable: tableName }) })
-      .then(res => res.json())
-      .then(packet => {
-        toggleLoadingOverlayIndicator(false, "");
-        if (packet.status === "Success") {
-          activeRowArrayPayloadReferenceStore = packet.data;
-          buildInteractiveAdministrativeGridDomLayoutElement(packet.headers, packet.data);
-        }
-      });
-    }
+      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: "fetchLedger", targetTable: table }) })
+      .then(res => res.json()).then(p => {
+         toggleLoadingOverlayIndicator(false, "");
+         if(p.status === "Success") {
+           activeRowArrayPayloadReferenceStore = p.data;
+           var t = document.getElementById("domOutputGridTargetTable"); t.innerHTML = "";
+           var hRow = t.insertRow();
+           p.headers.forEach(h => { if(h!=="Password" && h!=="base64ImageBlob") hRow.insertCell().outerHTML = `<th>${h}</th>`; });
+           var actionTh = document.createElement("th"); actionTh.innerText = "System Actions"; hRow.appendChild(actionTh);
 
-    function buildInteractiveAdministrativeGridDomLayoutElement(headers, data) {
-      var table = document.getElementById("adminDataTableTargetGrid");
-      table.innerHTML = "";
-      var thread = table.createTHead(); var headerRow = thread.insertRow();
-      headers.forEach(h => { if(h!=="Password" && h!=="base64ImageBlob") { var th = document.createElement("th"); th.innerText = h; headerRow.appendChild(th); } });
-      var actionTh = document.createElement("th"); actionTh.innerText = "System Actions Operations Management Control"; headerRow.appendChild(actionTh);
-
-      var tbody = table.createTBody();
-      data.forEach((row, rIdx) => {
-        var bodyRow = tbody.insertRow();
-        headers.forEach(h => {
-          if(h !== "Password" && h !== "base64ImageBlob") {
-            var cell = bodyRow.insertCell();
-            if(h === "Selfie URL" && row[h] && row[h].startsWith("data:image")) {
-               cell.innerHTML = `<img src="${row[h]}" style="height:35px; border-radius:4px; cursor:pointer;" onclick="window.open('${row[h]}')">`;
-            } else {
-               cell.innerText = row[h] || "---";
-            }
-          }
-        });
-        var actionCell = bodyRow.insertCell();
-        if (currentContextAdminTableName === "Leave" && row["Status"].toLowerCase() === "pending") {
-          actionCell.innerHTML = `<button class="btn btn-xs btn-success me-1 py-1 px-2" onclick="dispatchLeaveApprovalAction('${row["Leave ID"]}','Approved')">Approve</button><button class="btn btn-xs btn-danger py-1 px-2" onclick="dispatchLeaveApprovalAction('${row["Leave ID"]}','Rejected')">Deny</button>`;
-        } else if (currentContextAdminTableName === "Credentials") {
-          actionCell.innerHTML = `<button class="btn btn-xs btn-dark py-1 px-2" onclick="revealEntityFormMutationModal('edit', ${rIdx})">📝 Modify Parameters Record</button>`;
-        } else {
-          actionCell.innerText = "Verified Complete Layer Locked Statement";
-        }
+           p.data.forEach((r, rIdx) => {
+             var row = t.insertRow();
+             p.headers.forEach(h => {
+               if(h!=="Password" && h!=="base64ImageBlob") {
+                 var cell = row.insertCell();
+                 if(h === "Selfie URL" && r[h] && r[h].startsWith("data:image")) {
+                   cell.innerHTML = `<img src="${r[h]}" style="height:35px; border-radius:4px; cursor:pointer;" onclick="window.open('${r[h]}')">`;
+                 } else { cell.innerText = r[h] || "---"; }
+               }
+             });
+             var actionCell = row.insertCell();
+             if (currentContextAdminTableName === "Leave" && r["Status"].toLowerCase() === "pending") {
+               actionCell.innerHTML = `<button class="btn btn-xs btn-success py-1 px-2 me-1" onclick="dispatchLeaveApprovalAction('${r["Leave ID"]}','Approved')">Approve</button><button class="btn btn-xs btn-danger py-1 px-2" onclick="dispatchLeaveApprovalAction('${r["Leave ID"]}','Rejected')">Deny</button>`;
+             } else if (currentContextAdminTableName === "Credentials") {
+               actionCell.innerHTML = `<button class="btn btn-xs btn-dark py-1 px-2" onclick="revealEntityFormMutationModal('edit', ${rIdx})">📝 Edit</button>`;
+             } else {
+               actionCell.innerText = "System Locked Record";
+             }
+           });
+         }
       });
     }
 
     function revealEntityFormMutationModal(mode = "add", index = null) {
-      var form = document.getElementById("entityMutationDataFormTargetPayloadBlock"); form.innerHTML = "";
+      var form = document.getElementById("entityMutationFormTarget"); form.innerHTML = "";
       document.getElementById("lblFormMutationModalHeader").innerText = mode === "add" ? "Insert Entry Row Data Asset" : "Modify Record Parameters Entry Row Profile Fields";
       form.dataset.mode = mode;
 
@@ -410,7 +461,7 @@
       schematicFields.forEach(f => {
         var val = (mode === "edit" && activeRowArrayPayloadReferenceStore[index]) ? (activeRowArrayPayloadReferenceStore[index][f] || "") : "";
         var readonlyAttr = (mode === "edit" && (f === "EmployeeID" || f === "BranchID")) ? "readonly" : "";
-        var placeholderText = f === "Password" && mode === "edit" ? "Leave blank to preserve current secure passcode hash" : f;
+        var placeholderText = f === "Password" && mode === "edit" ? "Leave blank to keep current" : f;
         form.innerHTML += `<div class="mb-2"><label class="form-label small fw-bold mb-1">${f}</label><input type="text" name="${f}" value="${val}" ${readonlyAttr} class="form-control form-control-sm" placeholder="${placeholderText}" ${f!=="Password"?"required":""}></div>`;
       });
       form.innerHTML += `<button type="submit" class="btn btn-sm btn-danger w-100 mt-2">Commit Mutation Data Stream</button>`;
@@ -419,7 +470,7 @@
 
     function fireAdministrativeMutationRequestPayload(e) {
       e.preventDefault();
-      var form = document.getElementById("entityMutationDataFormTargetPayloadBlock");
+      var form = document.getElementById("entityMutationFormTarget");
       var mode = form.dataset.mode; var formData = new FormData(form); var payloadData = {};
       formData.forEach((val, key) => {
         if(key === "Password" && val) payloadData[key] = CryptoJS.SHA256(val).toString(CryptoJS.enc.Hex);
@@ -427,30 +478,30 @@
       });
 
       const actionRoute = currentContextAdminTableName === "Credentials" ? "saveEmployee" : "saveBranch";
-      toggleLoadingOverlayIndicator(true, "Processing mutation database execution sequence transaction profile...");
+      toggleLoadingOverlayIndicator(true, "Processing mutation database execution sequence...");
       bootstrap.Modal.getInstance(document.getElementById('entityMutationFormModal')).hide();
 
       fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: actionRoute, mode: mode, data: payloadData }) })
       .then(res => res.json())
-      .then(response => { toggleLoadingOverlayIndicator(false, ""); alert(response.message); loadAdminManagementLedgerPanel(currentContextAdminTableName); });
+      .then(response => { toggleLoadingOverlayIndicator(false, ""); alert(response.message); dispatchAdminTableQuery(currentContextAdminTableName); });
     }
 
     function dispatchLeaveApprovalAction(leaveId, targetStatus) {
-      toggleLoadingOverlayIndicator(true, "Registering administrative status decision sequence matrix parameter...");
+      toggleLoadingOverlayIndicator(true, "Registering administrative status decision...");
       fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: "processLeaveAction", leaveId: leaveId, status: targetStatus, adminUser: globalActiveUserSession.username }) })
       .then(res => res.json())
-      .then(d => { toggleLoadingOverlayIndicator(false, ""); alert(d.message); loadAdminManagementLedgerPanel("Leave"); });
+      .then(d => { toggleLoadingOverlayIndicator(false, ""); alert(d.message); dispatchAdminTableQuery("Leave"); });
     }
 
-    function triggerRecalculateMatrixSummary() {
-      toggleLoadingOverlayIndicator(true, "Compiling multi-row dynamic horizontal calendar summary grid matrices reports...");
+    function triggerBackgroundReportGridRecalc() {
+      toggleLoadingOverlayIndicator(true, "Compiling final monthly stacked dynamic horizonal rows summary views...");
       fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: "generateReport" }) })
       .then(res => res.json()).then(d => { toggleLoadingOverlayIndicator(false, ""); alert(d.message); });
     }
 
     function triggerProfileLogout() {
       if (activeHardwareCameraStreamInstance) { activeHardwareCameraStreamInstance.getTracks().forEach(t => t.stop()); }
-      localStorage.removeItem("HEAMS_PERSISTED_DATA_CACHE"); location.reload();
+      localStorage.removeItem("HEAMS_USER_SESSION"); location.reload();
     }
 
     function toggleLoadingOverlayIndicator(show, msg) {
