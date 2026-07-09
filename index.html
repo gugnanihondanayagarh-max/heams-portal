@@ -129,65 +129,53 @@
     function initiateDeviceSatelliteWatch() {
       if (navigator.geolocation) {
         navigator.geolocation.watchPosition(function(pos) {
-          currentDeviceLat = pos.coords.latitude; 
-          currentDeviceLng = pos.coords.longitude;
+          currentDeviceLat = pos.coords.latitude; currentDeviceLng = pos.coords.longitude;
           document.getElementById("lblGpsTelemetryString").innerText = currentDeviceLat.toFixed(5) + " , " + currentDeviceLng.toFixed(5);
-          var dot = document.getElementById("gpsTrackingDotBadge"); 
-          dot.className = "badge bg-success text-white px-2 py-1"; 
-          dot.innerText = "GPS Connected";
-          dot.style.width = "auto"; 
-          dot.style.height = "auto";
-        }, function(e) { 
-          document.getElementById("lblGpsTelemetryString").innerText = "Satellite Position Engine Restricted."; 
-        }, { enableHighAccuracy: true });
+          var dot = document.getElementById("gpsTrackingDotBadge"); dot.className = "badge bg-success text-white px-2 py-1"; dot.innerText = "GPS Connected";
+          dot.style.width = "auto"; dot.style.height = "auto";
+        }, function(e) { document.getElementById("lblGpsTelemetryString").innerText = "Satellite Position Engine Restricted."; }, { enableHighAccuracy: true });
       }
     }
 
     function evaluateLocalSessionPersistenceCache() {
       const cache = localStorage.getItem("HEAMS_USER_SESSION");
       if (cache) { 
-        globalActiveUserSession = JSON.parse(cache); 
-        launchEmployeeDashboardView(); 
+        var parsed = JSON.parse(cache);
+        if(parsed.role === "Employee") {
+          globalActiveUserSession = parsed; 
+          launchEmployeeDashboardView(); 
+        } else {
+          localStorage.removeItem("HEAMS_USER_SESSION");
+        }
       }
     }
 
-    // Locate this block inside index.html:
-if (data.status === "Success") { 
-  // ADD THIS STRICT GUARD LOGIC:
-  if (data.role !== "Employee") {
-    toggleLoadingOverlayIndicator(false, "");
-    errBox.innerText = "Access Denied: Administrative credentials cannot log into the Employee Portal.";
-    errBox.classList.remove("d-none");
-    return;
-  }
-  
-  globalActiveUserSession = data; 
-  localStorage.setItem("HEAMS_USER_SESSION", JSON.stringify(globalActiveUserSession)); 
-  launchEmployeeDashboardView(); 
-}
+    function fireSecureLoginRequest(e) {
+      e.preventDefault();
+      const uid = document.getElementById("usernameInputField").value.trim();
+      const pass = document.getElementById("passwordInputField").value;
+      const errBox = document.getElementById("loginErrorFrame");
+      errBox.classList.add("d-none");
+      toggleLoadingOverlayIndicator(true, "Securing transaction link...");
+      const hashedPass = CryptoJS.SHA256(pass).toString(CryptoJS.enc.Hex);
+
       fetch(PRODUCTION_GAS_ENDPOINT_URL, {
-        method: "POST",
-        // Using text/plain prevents the web browser from dropping connections on modern strict CORS checking extensions
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: "employeeLogin", username: uid, password: hashedPass })
       })
-      .then(res => res.json())
-      .then(data => {
+      .then(res => res.json()).then(data => {
         toggleLoadingOverlayIndicator(false, "");
         if (data.status === "Success") { 
+          if(data.role !== "Employee") {
+            errBox.innerText = "Access Restricted: Use Admin terminal for management profiles.";
+            errBox.classList.remove("d-none");
+            return;
+          }
           globalActiveUserSession = data; 
           localStorage.setItem("HEAMS_USER_SESSION", JSON.stringify(globalActiveUserSession)); 
           launchEmployeeDashboardView(); 
-        } else { 
-          errBox.innerText = data.message; 
-          errBox.classList.remove("d-none"); 
-        }
-      })
-      .catch(e => { 
-        toggleLoadingOverlayIndicator(false, ""); 
-        errBox.innerText = "Connection link mapping timeout boundary error."; 
-        errBox.classList.remove("d-none"); 
-      });
+        } else { errBox.innerText = data.message; errBox.classList.remove("d-none"); }
+      }).catch(e => { toggleLoadingOverlayIndicator(false, ""); errBox.innerText = "Connection loop pipeline handshake fault."; errBox.classList.remove("d-none"); });
     }
 
     function launchEmployeeDashboardView() {
@@ -197,92 +185,53 @@ if (data.status === "Success") {
       document.getElementById("lblStaffName").innerText = globalActiveUserSession.employeeName;
       document.getElementById("lblStaffIdMeta").innerText = globalActiveUserSession.employeeId;
       document.getElementById("lblOfficeLocationNode").innerText = globalActiveUserSession.branch;
-      bindCameraStreamToViewport(); 
-      loadAttendanceLogStatementLedger();
+      bindCameraStreamToViewport(); loadAttendanceLogStatementLedger();
     }
 
     function bindCameraStreamToViewport() {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: "user", width: 640, height: 480 } })
-          .then(function(s) { 
-            activeHardwareCameraStreamInstance = s; 
-            document.getElementById("videoStream").srcObject = s; 
-          })
-          .catch(err => console.warn("Camera initializing blocked or unavailable:", err));
+          .then(function(s) { activeHardwareCameraStreamInstance = s; document.getElementById("videoStream").srcObject = s; })
+          .catch(err => console.log("Camera access declaration rejected:", err));
       }
     }
 
     function executeSelfiePunchLogRequest() {
       if (!currentDeviceLat || !currentDeviceLng) return alert("Position lock parameters matching timeout sync. Try again in 3 seconds.");
-      var canvas = document.getElementById("processingBufferCanvas"); 
-      var video = document.getElementById("videoStream"); 
-      var context = canvas.getContext("2d");
-      
+      var canvas = document.getElementById("processingBufferCanvas"); var video = document.getElementById("videoStream"); var context = canvas.getContext("2d");
       toggleLoadingOverlayIndicator(true, "Encoding static image compression string structures layers...");
-      canvas.width = 640; 
-      canvas.height = 480;
-      context.translate(canvas.width, 0); 
-      context.scale(-1, 1);
+      canvas.width = 640; canvas.height = 480;
+      context.translate(canvas.width, 0); context.scale(-1, 1);
       context.drawImage(video, 0, 0, 640, 480);
-      
-      const base64Str = canvas.toDataURL("image/jpeg", 0.5); // Dropped resolution factor slightly to protect memory port pipe strings
+      const base64Str = canvas.toDataURL("image/jpeg", 0.5);
       const type = document.getElementById("punchActionTypeSelect").value;
 
       fetch(PRODUCTION_GAS_ENDPOINT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ 
-          action: "executePunchTransaction", 
-          employeeId: globalActiveUserSession.employeeId, 
-          employeeName: globalActiveUserSession.employeeName, 
-          branch: globalActiveUserSession.branch, 
-          department: globalActiveUserSession.department || "Sales", 
-          punchType: type, 
-          lat: currentDeviceLat, 
-          lng: currentDeviceLng, 
-          base64ImageBlob: base64Str 
-        })
+        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "executePunchTransaction", employeeId: globalActiveUserSession.employeeId, employeeName: globalActiveUserSession.employeeName, branch: globalActiveUserSession.branch, department: globalActiveUserSession.department || "Sales", punchType: type, lat: currentDeviceLat, lng: currentDeviceLng, base64ImageBlob: base64Str })
       })
-      .then(res => res.json())
-      .then(d => { 
-        toggleLoadingOverlayIndicator(false, ""); 
-        alert(d.message); 
-        if (d.status === "Success") loadAttendanceLogStatementLedger(); 
-      })
-      .catch(e => { 
-        toggleLoadingOverlayIndicator(false, ""); 
-        alert("Payload submission transmission link gateway break error mapping profile."); 
-      });
+      .then(res => res.json()).then(d => { toggleLoadingOverlayIndicator(false, ""); alert(d.message); if (d.status === "Success") loadAttendanceLogStatementLedger(); })
+      .catch(e => { toggleLoadingOverlayIndicator(false, ""); alert("Payload submission transmission link gateway break error mapping profile."); });
     }
 
     function loadAttendanceLogStatementLedger() {
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { 
-        method: "POST", 
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "fetchHistory", employeeId: globalActiveUserSession.employeeId }) 
-      })
-      .then(res => res.json())
-      .then(json => {
+      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "fetchHistory", employeeId: globalActiveUserSession.employeeId }) })
+      .then(res => res.json()).then(json => {
         if (json.status === "Success") {
           activeGlobalHistoryLogsArrayStore = json.data;
-          var container = document.getElementById("historyLogGroupStack"); 
-          container.innerHTML = "";
+          var container = document.getElementById("historyLogGroupStack"); container.innerHTML = "";
           json.data.forEach(function(item) {
             container.innerHTML += `<div class="list-group-item p-2 d-flex justify-content-between align-items-center"><div><span class="badge ${item.type==="In"?"bg-success":"bg-danger"} me-2">${item.type}</span><b>${item.time}</b><small class="text-muted d-block">${item.date}</small></div><span class="small">${item.status}</span></div>`;
           });
         }
-      }).catch(err => console.error("Async history tracking dropped:", err));
+      });
     }
 
     function renderFactoTimeEmployeeCalendarGrid() {
-      var grid = document.getElementById("factoCalendarGridContainer"); 
-      grid.innerHTML = "";
-      var cursor = new Date(); 
-      var totalDays = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
+      var grid = document.getElementById("factoCalendarGridContainer"); grid.innerHTML = "";
+      var cursor = new Date(); var totalDays = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
       for (var day = 1; day <= totalDays; day++) {
-        var node = document.createElement("div"); 
-        node.className = "calendar-day-node"; 
-        node.innerHTML = `<span>${day}</span>`;
+        var node = document.createElement("div"); node.className = "calendar-day-node"; node.innerHTML = `<span>${day}</span>`;
         var dStr = (day < 10 ? "0" + day : day) + "-" + cursor.toLocaleString('en-US', { month: 'short' }) + "-" + cursor.getFullYear();
         var present = activeGlobalHistoryLogsArrayStore.some(log => log.date.toString().toLowerCase().trim() === dStr.toLowerCase().trim());
         if (present) node.classList.add("node-present"); else node.classList.add("node-absent");
@@ -292,18 +241,13 @@ if (data.status === "Success") {
 
     function triggerProfileLogout() {
       if (activeHardwareCameraStreamInstance) activeHardwareCameraStreamInstance.getTracks().forEach(t => t.stop());
-      localStorage.removeItem("HEAMS_USER_SESSION"); 
-      location.reload();
+      localStorage.removeItem("HEAMS_USER_SESSION"); location.reload();
     }
 
     function toggleLoadingOverlayIndicator(show, msg) {
       var overlay = document.getElementById("loadingOverlay");
-      if (show) { 
-        document.getElementById("loaderMessage").innerText = msg; 
-        overlay.classList.remove("hidden"); 
-      } else {
-        overlay.classList.add("hidden");
-      }
+      if (show) { document.getElementById("loaderMessage").innerText = msg; overlay.classList.remove("hidden"); }
+      else overlay.classList.add("hidden");
     }
   </script>
 </body>
