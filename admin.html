@@ -150,18 +150,16 @@
 
         // FIX: DOMContentLoaded Gateway Interceptor Routine
         document.addEventListener("DOMContentLoaded", function() {
-            var sessionFlag = localStorage.getItem("is_admin_logged_in");
-            var roleFlag = localStorage.getItem("admin_role");
+    var sessionFlag = localStorage.getItem("is_admin_logged_in");
+    var roleFlag = localStorage.getItem("admin_role");
 
-            if (sessionFlag === "true" && roleFlag === "Admin") {
-                // BYPASS SECOND LOGIN PROMPT: Instantly display the panel and load live spreadsheet metrics
-                document.getElementById("admin-main-panel").style.display = "block";
-                fetchDashboardMetrics();
-            } else {
-                // Display login panel fallback only if no session exists
-                document.getElementById("admin-login-overlay").style.display = "flex";
-            }
-        });
+    if (sessionFlag === "true" && roleFlag === "Admin") {
+        document.getElementById("admin-main-panel").style.display = "block";
+        fetchDashboardMetrics();
+    } else {
+        document.getElementById("admin-login-overlay").style.display = "flex";
+    }
+});
 
         function fetchDashboardMetrics() {
             fetch(WEB_APP_URL, {
