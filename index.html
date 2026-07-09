@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>HONDA HEAMS - Employee Attendance Portal</title>
+  <title>HONDA HEAMS - Attendance Portal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     :root { --honda-red: #cc0000; --dark-slate: #1a1e21; --body-bg: #f4f6f9; --card-bg: #ffffff; --text-main: #212529; }
@@ -22,7 +22,6 @@
     .scroll-logs { max-height: 250px; overflow-y: auto; }
     .hidden { display: none !important; }
     .loader-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
-    .toggle-link { color: var(--honda-red); font-weight: 600; cursor: pointer; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -44,26 +43,21 @@
       <div class="col-12 col-sm-10 col-md-7 col-lg-5">
          
         <div id="loginCard" class="card app-card p-4">
-          <h4 id="loginTitleHeader" class="fw-bold text-center mb-1">Employee Login</h4>
-          <p id="loginSubtitleHeader" class="text-muted small text-center mb-4">Honda Employee Attendance Management System</p>
+          <h4 class="fw-bold text-center mb-1">System Portal Login</h4>
+          <p class="text-muted small text-center mb-4">Honda Attendance Management System Terminal</p>
           
           <div class="alert alert-danger d-none" id="loginErrorFrame"></div>
           
           <form onsubmit="fireSecureLoginRequest(event)">
             <div class="mb-3">
-              <label id="lblUsernameField" class="form-label small fw-bold">Employee ID</label>
-              <input type="text" id="usernameInputField" class="form-control form-control-lg" placeholder="e.g. EMP101" required>
+              <label class="form-label small fw-bold">User ID / Username</label>
+              <input type="text" id="usernameInputField" class="form-control form-control-lg" placeholder="e.g. EMP101 or admin" required>
             </div>
             <div class="mb-4">
               <label class="form-label small fw-bold">Password</label>
               <input type="password" id="passwordInputField" class="form-control form-control-lg" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="w-100 btn btn-honda btn-lg rounded-3 mb-3">Sign In</button>
-            
-            <div class="text-center small">
-              <span id="txtToggleText">Are you an Administrator?</span> 
-              <span id="btnTogglePortalMode" class="toggle-link" onclick="togglePortalLoginLayoutMode()">Admin Login</span>
-            </div>
+            <button type="submit" class="w-100 btn btn-honda btn-lg rounded-3">Sign In</button>
           </form>
         </div>
 
@@ -128,44 +122,11 @@
     var currentDeviceLng = null;
     var activeHardwareCameraStreamInstance = null;
     var activeGlobalHistoryLogsArrayStore = [];
-    
-    // Portal tracking state: "Employee" or "Admin"
-    var currentPortalLoginViewMode = "Employee"; 
 
     window.onload = function() { 
       initiateDeviceSatelliteWatch(); 
       evaluateLocalSessionPersistenceCache(); 
     };
-
-    function togglePortalLoginLayoutMode() {
-      const title = document.getElementById("loginTitleHeader");
-      const subtitle = document.getElementById("loginSubtitleHeader");
-      const label = document.getElementById("lblUsernameField");
-      const input = document.getElementById("usernameInputField");
-      const toggleBtn = document.getElementById("btnTogglePortalMode");
-      const toggleTxt = document.getElementById("txtToggleText");
-      const errBox = document.getElementById("loginErrorFrame");
-      
-      errBox.classList.add("d-none");
-      
-      if (currentPortalLoginViewMode === "Employee") {
-        currentPortalLoginViewMode = "Admin";
-        title.innerText = "Admin Console Login";
-        subtitle.innerText = "HEAMS Pro - Super Administrative Control Terminal";
-        label.innerText = "Admin Username ID";
-        input.placeholder = "e.g. admin";
-        toggleBtn.innerText = "Employee Portal";
-        toggleTxt.innerText = "Are you a regular staff member?";
-      } else {
-        currentPortalLoginViewMode = "Employee";
-        title.innerText = "Employee Login";
-        subtitle.innerText = "Honda Employee Attendance Management System";
-        label.innerText = "Employee ID";
-        input.placeholder = "e.g. EMP101";
-        toggleBtn.innerText = "Admin Login";
-        toggleTxt.innerText = "Are you an Administrator?";
-      }
-    }
 
     function initiateDeviceSatelliteWatch() {
       if (navigator.geolocation) {
@@ -197,38 +158,38 @@
       const pass = document.getElementById("passwordInputField").value;
       const errBox = document.getElementById("loginErrorFrame");
       errBox.classList.add("d-none");
-      toggleLoadingOverlayIndicator(true, "Securing transaction link...");
+      toggleLoadingOverlayIndicator(true, "Verifying credentials database rules...");
       const hashedPass = CryptoJS.SHA256(pass).toString(CryptoJS.enc.Hex);
 
-      // Dynamically select action target path routes based on selected UI layout state
-      const resolvedActionCommand = (currentPortalLoginViewMode === "Admin") ? "adminLogin" : "employeeLogin";
-
+      // First check: Query employeeLogin authentication loop sequence
       fetch(PRODUCTION_GAS_ENDPOINT_URL, {
         method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: resolvedActionCommand, username: uid, password: hashedPass })
+        body: JSON.stringify({ action: "employeeLogin", username: uid, password: hashedPass })
       })
       .then(res => res.json()).then(data => {
-        toggleLoadingOverlayIndicator(false, "");
-        if (data.status === "Success") { 
-          
-          if (currentPortalLoginViewMode === "Admin" && data.role === "Admin") {
-            // Secure redirection route to Admin configuration file mapping
-            window.location.href = "admin.html";
-            return;
-          }
-          
-          if (currentPortalLoginViewMode === "Employee" && data.role === "Employee") {
-            globalActiveUserSession = data; 
-            localStorage.setItem("HEAMS_USER_SESSION", JSON.stringify(globalActiveUserSession)); 
-            launchEmployeeDashboardView(); 
-            return;
-          }
-          
-          errBox.innerText = "Clearance Error: Role type mapping mismatch configuration rules.";
-          errBox.classList.remove("d-none");
-          
-        } else { errBox.innerText = data.message; errBox.classList.remove("d-none"); }
-      }).catch(e => { toggleLoadingOverlayIndicator(false, ""); errBox.innerText = "Connection loop pipeline handshake fault."; errBox.classList.remove("d-none"); });
+        if (data.status === "Success" && data.role === "Employee") {
+          toggleLoadingOverlayIndicator(false, "");
+          globalActiveUserSession = data; 
+          localStorage.setItem("HEAMS_USER_SESSION", JSON.stringify(globalActiveUserSession)); 
+          launchEmployeeDashboardView(); 
+        } else {
+          // AUTOMATIC ADMIN REDIRECTION AUTORUN FALLBACK FALLTHROUGH
+          // If not matching employee dataset framework, query Admin configuration rules immediately
+          fetch(PRODUCTION_GAS_ENDPOINT_URL, {
+            method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ action: "adminLogin", username: uid, password: hashedPass })
+          })
+          .then(resAdmin => resAdmin.json()).then(adminData => {
+            toggleLoadingOverlayIndicator(false, "");
+            if (adminData.status === "Success" && adminData.role === "Admin") {
+              window.location.href = "admin.html";
+            } else {
+              errBox.innerText = "Invalid Identification Parameters. Check credentials layout configuration cells.";
+              errBox.classList.remove("d-none");
+            }
+          }).catch(err => { toggleLoadingOverlayIndicator(false, ""); errBox.innerText = "Admin routing pipeline execution fault."; errBox.classList.remove("d-none"); });
+        }
+      }).catch(e => { toggleLoadingOverlayIndicator(false, ""); errBox.innerText = "Network loop pipeline handshake fault."; errBox.classList.remove("d-none"); });
     }
 
     function launchEmployeeDashboardView() {
