@@ -89,11 +89,19 @@
     var adminChartInstance = null; 
     var currentContextTableName = null;
 
-    function handleAdminAuthentication(e) {
-      e.preventDefault();
-      const uid = document.getElementById("adminUserField").value.trim();
-      const pass = document.getElementById("adminPasswordField").value;
-      const secureHash = CryptoJS.SHA256(pass).toString(CryptoJS.enc.Hex);
+    // Locate this block inside admin.html:
+if(data.status === "Success") {
+  // ADD THIS STRICT GUARD LOGIC:
+  if (data.role !== "Admin") {
+    alert("Access Denied: Regular employee profiles are restricted from accessing the Super Admin Terminal.");
+    return;
+  }
+
+  document.getElementById("loginCard").classList.add("hidden");
+  document.getElementById("adminWorkspace").classList.remove("hidden");
+  document.getElementById("btnLogout").classList.remove("hidden");
+  loadDashboardMetricsOverviewPanel();
+}
 
       fetch(PRODUCTION_GAS_ENDPOINT_URL, { 
         method: "POST", 
