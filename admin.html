@@ -150,13 +150,19 @@
 
         // FIX: DOMContentLoaded Gateway Interceptor Routine
         document.addEventListener("DOMContentLoaded", function() {
-    var sessionFlag = localStorage.getItem("is_admin_logged_in");
-    var roleFlag = localStorage.getItem("admin_role");
+    // FIX: Read the secure authentication tokens directly from the web link URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionFlag = urlParams.get("auth");
+    const roleFlag = urlParams.get("role");
 
     if (sessionFlag === "true" && roleFlag === "Admin") {
+        // Hide the login box overlay completely
+        document.getElementById("admin-login-overlay").style.display = "none";
+        // Reveal the administrative panel metrics dashboard instantly
         document.getElementById("admin-main-panel").style.display = "block";
         fetchDashboardMetrics();
     } else {
+        // If someone opens admin.html without the secure link tokens, show the login screen
         document.getElementById("admin-login-overlay").style.display = "flex";
     }
 });
