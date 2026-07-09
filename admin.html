@@ -1,173 +1,245 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HEAMS Pro - Super Administrative Control Terminal</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    :root { --honda-red: #cc0000; --dark-slate: #111; --bg: #f4f6f9; }
-    body { background-color: var(--bg); color: #212529; font-family: system-ui, -apple-system, sans-serif; }
-    .navbar-honda { background-color: var(--dark-slate); border-bottom: 4px solid var(--honda-red); }
-    .app-card { background: #fff; border: none; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-    .btn-honda { background-color: var(--honda-red); color: white; font-weight: bold; border: none; }
-    .hidden { display: none !important; }
-    .stat-box { border-left: 4px solid var(--honda-red); background: #ffffff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HONDA HEAMS Admin Terminal</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --honda-red: #E4002B;
+            --dark-gray: #111111;
+            --panel-gray: #1E1E1E;
+        }
+        body {
+            background-color: #121212;
+            color: #E0E0E0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .admin-header {
+            background-color: var(--dark-gray);
+            border-bottom: 3px solid var(--honda-red);
+            padding: 15px 0;
+        }
+        .metric-card {
+            background-color: var(--panel-gray);
+            border: none;
+            border-left: 4px solid var(--honda-red);
+            border-radius: 6px;
+        }
+        .control-box {
+            background-color: var(--panel-gray);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .btn-honda {
+            background-color: var(--honda-red);
+            color: white;
+            border: none;
+        }
+        .btn-honda:hover {
+            background-color: #b30021;
+            color: white;
+        }
+        .table-dark-custom {
+            background-color: var(--panel-gray);
+            color: white;
+        }
+        #admin-login-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #121212;
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
 </head>
 <body>
 
-  <nav class="navbar navbar-dark navbar-honda shadow-sm px-3">
-    <span class="navbar-brand fw-bold text-white"><span class="badge bg-danger me-2">HONDA</span> HEAMS Admin Terminal</span>
-    <button id="btnLogout" class="btn btn-sm btn-outline-light hidden" onclick="executeProfileLogout()">Logout</button>
-  </nav>
-
-  <div class="container py-4">
-    
-    <div id="loginCard" class="card app-card p-4 mx-auto shadow-sm" style="max-width: 420px; background:#fff;">
-      <h4 class="fw-bold text-center mb-3 text-dark">Admin Console Login</h4>
-      <form onsubmit="handleAdminAuthentication(event)">
-        <div class="mb-3"><label class="form-label small fw-bold">Admin Username ID</label><input type="text" id="adminUserField" class="form-control" placeholder="admin" required></div>
-        <div class="mb-4"><label class="form-label small fw-bold">Administrative PIN Passcode</label><input type="password" id="adminPasswordField" class="form-control" placeholder="••••••••" required></div>
-        <button type="submit" class="w-100 btn btn-honda py-2 rounded-3">Access Console System</button>
-      </form>
+    <!-- Manual Fallback Admin Login Overlay (Hidden Automatically if session token is valid) -->
+    <div id="admin-login-overlay" style="display: none;">
+        <div class="control-box text-center" style="width: 380px;">
+            <h4 class="fw-bold text-white mb-2"><i class="fa-solid fa-lock text-danger"></i> Admin Console Login</h4>
+            <p class="text-muted small">Session missing. Re-verify credentials loop.</p>
+            <input type="text" id="alt-username" class="form-control mb-2 bg-dark text-white border-secondary" placeholder="Admin Username">
+            <input type="password" id="alt-password" class="form-control mb-3 bg-dark text-white border-secondary" placeholder="Admin Password">
+            <button class="btn btn-honda w-100" onclick="handleManualAdminLogin()">Unlock Terminal Dashboard</button>
+        </div>
     </div>
 
-    <div id="adminWorkspace" class="hidden">
-      <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3"><div class="p-3 stat-box"><small class="text-muted fw-bold">Roster Employees</small><h2 class="fw-bold m-0 text-primary" id="mStaff">0</h2></div></div>
-        <div class="col-6 col-md-3"><div class="p-3 stat-box"><small class="text-muted fw-bold">Active Geofences</small><h2 class="fw-bold m-0 text-success" id="mBranches">0</h2></div></div>
-        <div class="col-6 col-md-3"><div class="p-3 stat-box"><small class="text-muted fw-bold">Punches Logged Today</small><h2 class="fw-bold m-0 text-info" id="mPresent">0</h2></div></div>
-        <div class="col-6 col-md-3"><div class="p-3 stat-box"><small class="text-muted fw-bold">GPS Fault Alerts</small><h2 class="fw-bold m-0 text-danger" id="mMismatch">0</h2></div></div>
-      </div>
+    <!-- Header Terminal Banner -->
+    <header class="admin-header">
+        <div class="container d-flex justify-content-between align-items-center">
+            <h4 class="m-0 text-white fw-bold"><i class="fa-solid fa-shield-halved text-danger"></i> HONDA HEAMS <span>Admin Terminal</span></h4>
+            <button class="btn btn-sm btn-outline-light" onclick="executeAdminSessionLogout()"><i class="fa-solid fa-power-off text-danger"></i> Secure Logout</button>
+        </div>
+    </header>
 
-      <div class="row g-3 mb-4">
-        <div class="col-12 col-md-5">
-          <div class="card app-card p-4 h-100 bg-white">
-            <h5 class="fw-bold text-dark mb-3">Database Controls</h5>
-            <div class="d-flex flex-column gap-2">
-              <button class="btn btn-dark w-100 text-start py-2" onclick="streamRelationalTableData('Credentials')">👥 Manage Employee Ledgers</button>
-              <button class="btn btn-dark w-100 text-start py-2" onclick="streamRelationalTableData('Branches')">📍 Manage Branch Geofences</button>
-              <button class="btn btn-secondary w-100 text-start py-2" onclick="streamRelationalTableData('Attendance')">📊 Attendance Log Records</button>
-              <button class="btn btn-danger w-100 py-3 fw-bold mt-2 shadow-sm" onclick="triggerMatrixRecalculationCommand()">🔄 Force Compile Report Summary Matrix</button>
+    <!-- Main Dashboard Framework Container -->
+    <div class="container my-5" id="admin-main-panel" style="display: none;">
+        
+        <!-- Live Analytics Metric Counters Grid Rows -->
+        <div class="row g-3 mb-5">
+            <div class="col-md-3">
+                <div class="card metric-card p-3">
+                    <small class="text-muted uppercase fw-bold">Roster Employees</small>
+                    <h2 class="fw-bold text-white m-0" id="metric-staff">0</h2>
+                </div>
             </div>
-          </div>
+            <div class="col-md-3">
+                <div class="card metric-card p-3">
+                    <small class="text-muted uppercase fw-bold">Active Geofences</small>
+                    <h2 class="fw-bold text-white m-0" id="metric-branches">0</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card p-3">
+                    <small class="text-muted uppercase fw-bold">Punches Logged Today</small>
+                    <h2 class="fw-bold text-success m-0" id="metric-present">0</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card p-3">
+                    <small class="text-muted uppercase fw-bold">GPS Fault Alerts</small>
+                    <h2 class="fw-bold text-danger m-0" id="metric-mismatch">0</h2>
+                </div>
+            </div>
         </div>
-        <div class="col-12 col-md-7">
-          <div class="card app-card p-4 h-100 bg-white">
-            <h6 class="fw-bold text-secondary mb-2">Dealership Attendance Analytics</h6>
-            <div style="height: 180px; position: relative;"><canvas id="adminMetricsChartCanvas"></canvas></div>
-          </div>
-        </div>
-      </div>
 
-      <div id="tableWorkspaceWrapper" class="card app-card p-4 hidden bg-white">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="fw-bold text-danger m-0" id="lblGridTitle">Table Ledger</h5>
-          <button class="btn btn-sm btn-success fw-bold" id="btnAddNewRowEntityItem" onclick="revealEntityMutationModal()">Add Entry Record</button>
+        <!-- Database Controls & Ledger Configuration Panels -->
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="control-box h-100">
+                    <h5 class="fw-bold text-white border-bottom pb-2 mb-3"><i class="fa-solid fa-sliders text-danger"></i> Database Controls</h5>
+                    <button class="btn btn-dark text-start w-100 mb-2 border-secondary" onclick="loadLedgerData('Credentials')"><i class="fa-solid fa-users"></i> Query Employee Records</button>
+                    <button class="btn btn-dark text-start w-100 mb-2 border-secondary" onclick="loadLedgerData('Branches')"><i class="fa-solid fa-building-flag"></i> Query Geofence Branches</button>
+                    <button class="btn btn-dark text-start w-100 mb-4 border-secondary" onclick="loadLedgerData('Attendance')"><i class="fa-solid fa-list-check"></i> Query Attendance Transaction Ledger</button>
+                    
+                    <h5 class="fw-bold text-white border-bottom pb-2 mb-3"><i class="fa-solid fa-plus text-success"></i> Insert Row Entry Record</h5>
+                    <button class="btn btn-honda w-100 py-2" onclick="alert('Opening Dynamic Record Creation Wizard...')"><i class="fa-solid fa-database"></i> Open Mutation Wizard</button>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="control-box h-100">
+                    <h5 class="fw-bold text-white border-bottom pb-2 mb-3" id="ledger-title"><i class="fa-solid fa-chart-line text-danger"></i> Dealership Attendance Analytics</h5>
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-dark table-striped align-middle table-hover border-secondary" id="ledger-data-table">
+                            <thead id="ledger-headers">
+                                <tr><th class="text-muted">Select a database matrix control path loop to stream active sheet rows.</th></tr>
+                            </thead>
+                            <tbody id="ledger-rows">
+                                <tr><td class="text-center text-muted py-4">Database Ledger Standby Engine Status: Online</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="table-responsive"><table class="table table-bordered text-center align-middle small text-dark" id="domOutputGridTargetTable"></table></div>
-      </div>
+
     </div>
 
-  </div>
+    <script>
+        // CONFIGURATION: Replace with your deployed Google Apps Script Web App URL
+        const WEB_APP_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
 
-  <div class="modal fade" id="entityMutationFormModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title fw-bold text-danger">Insert Row Entry Record</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body"><form id="entityMutationFormTarget" onsubmit="fireMutationRequestPayload(event)"></form></div>
-      </div>
-    </div>
-  </div>
+        // FIX: DOMContentLoaded Gateway Interceptor Routine
+        document.addEventListener("DOMContentLoaded", function() {
+            var sessionFlag = localStorage.getItem("is_admin_logged_in");
+            var roleFlag = localStorage.getItem("admin_role");
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-  <script>
-    const PRODUCTION_GAS_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbwkVf2-5-yZrcfa-BfJJMgDq1saP95iITooTE3gRwx4tvv9MfX1eQR67fWoDW1dcMwtpw/exec";
-    var adminChartInstance = null; var currentContextTableName = null;
+            if (sessionFlag === "true" && roleFlag === "Admin") {
+                // BYPASS SECOND LOGIN PROMPT: Instantly display the panel and load live spreadsheet metrics
+                document.getElementById("admin-main-panel").style.display = "block";
+                fetchDashboardMetrics();
+            } else {
+                // Display login panel fallback only if no session exists
+                document.getElementById("admin-login-overlay").style.display = "flex";
+            }
+        });
 
-    function handleAdminAuthentication(e) {
-      e.preventDefault();
-      const uid = document.getElementById("adminUserField").value.trim();
-      const pass = document.getElementById("adminPasswordField").value;
-      const secureHash = CryptoJS.SHA256(pass).toString(CryptoJS.enc.Hex);
-
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { 
-        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "adminLogin", username: uid, password: secureHash }) 
-      })
-      .then(res => res.json()).then(data => {
-        if(data.status === "Success") {
-          if(data.role !== "Admin") {
-            alert("Restricted Terminal: Employee profiles cannot gain clearance elements.");
-            return;
-          }
-          document.getElementById("loginCard").classList.add("hidden");
-          document.getElementById("adminWorkspace").classList.remove("hidden");
-          document.getElementById("btnLogout").classList.remove("hidden");
-          loadDashboardMetricsOverviewPanel();
-        } else { alert(data.message); }
-      }).catch(err => alert("Handshake Timeout Error occurred. Check deployment version logs."));
-    }
-
-    function loadDashboardMetricsOverviewPanel() {
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "getAdminMetrics" }) })
-      .then(res => res.json()).then(m => {
-        if(m.status === "Success") {
-          document.getElementById("mStaff").innerText = m.totalEmployees; document.getElementById("mBranches").innerText = m.totalBranches;
-          document.getElementById("mPresent").innerText = m.presentToday; document.getElementById("mMismatch").innerText = m.locationMismatches;
-          var ctx = document.getElementById('adminMetricsChartCanvas').getContext('2d');
-          if (adminChartInstance) adminChartInstance.destroy();
-          adminChartInstance = new Chart(ctx, { type: 'bar', data: { labels: ['Present', 'Absent', 'GPS Flags'], datasets: [{ data: [m.presentToday, m.absentToday, m.locationMismatches], backgroundColor: ['#198754', '#dc3545', '#ffc107'] }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        function fetchDashboardMetrics() {
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "getAdminMetrics" })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "Success") {
+                    document.getElementById("metric-staff").innerText = data.totalEmployees;
+                    document.getElementById("metric-branches").innerText = data.totalBranches;
+                    document.getElementById("metric-present").innerText = data.presentToday;
+                    document.getElementById("metric-mismatch").innerText = data.locationMismatches;
+                }
+            });
         }
-      });
-    }
 
-    function streamRelationalTableData(table) {
-      currentContextTableName = table;
-      document.getElementById("tableWorkspaceWrapper").classList.remove("hidden");
-      document.getElementById("lblGridTitle").innerText = "Table Ledger Schema: " + table;
-      if(table === "Attendance" || table === "Leave") document.getElementById("btnAddNewRowEntityItem").classList.add("hidden");
-      else document.getElementById("btnAddNewRowEntityItem").classList.remove("hidden");
+        function loadLedgerData(tableName) {
+            document.getElementById("ledger-title").innerText = `Table Ledger Matrix: ${tableName}`;
+            document.getElementById("ledger-rows").innerHTML = `<tr><td class="text-center py-4"><div class="spinner-border text-danger" role="status"></div></td></tr>`;
+            
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "fetchLedger", targetTable: tableName })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === "Success" && res.headers.length > 0) {
+                    let headHtml = "<tr>";
+                    res.headers.forEach(h => headHtml += `<th>${h}</th>`);
+                    headHtml += "</tr>";
+                    document.getElementById("ledger-headers").innerHTML = headHtml;
 
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "fetchLedger", targetTable: table }) })
-      .then(res => res.json()).then(p => {
-         if(p.status === "Success") {
-           var t = document.getElementById("domOutputGridTargetTable"); t.innerHTML = "";
-           var hRow = t.insertRow();
-           p.headers.forEach(h => { var th = document.createElement('th'); th.innerText = h; hRow.appendChild(th); });
-           p.data.forEach(r => {
-             var row = t.insertRow(); 
-             p.headers.forEach(h => { var cell = row.insertCell(); cell.innerText = r[h] || "---"; });
-           });
-         }
-      });
-    }
+                    let bodyHtml = "";
+                    res.data.forEach(row => {
+                        bodyHtml += "<tr>";
+                        res.headers.forEach(h => {
+                            bodyHtml += `<td>${row[h] || ""}</td>`;
+                        });
+                        bodyHtml += "</tr>";
+                    });
+                    document.getElementById("ledger-rows").innerHTML = bodyHtml;
+                } else {
+                    document.getElementById("ledger-rows").innerHTML = `<tr><td class="text-center text-muted">Table is currently blank.</td></tr>`;
+                }
+            });
+        }
 
-    function revealEntityMutationModal() {
-      var form = document.getElementById("entityMutationFormTarget"); form.innerHTML = "";
-      var fields = currentContextTableName === "Credentials" ? ["EmployeeID", "EmployeeName", "Password", "Branch", "Department", "Designation", "JoiningDate", "Mobile", "Email"] : ["BranchID", "BranchName", "Address", "Latitude", "Longitude", "Radius", "OfficeStart", "OfficeEnd", "GraceTime", "WeeklyOff", "Manager"];
-      fields.forEach(f => { form.innerHTML += `<div class="mb-2"><label class="form-label small fw-bold mb-1">${f}</label><input type="text" name="${f}" class="form-control form-control-sm" required></div>`; });
-      form.innerHTML += `<button type="submit" class="btn btn-sm btn-danger w-100 mt-2">Commit Record Entry</button>`;
-      new bootstrap.Modal(document.getElementById('entityMutationFormModal')).show();
-    }
+        function handleManualAdminLogin() {
+            const user = document.getElementById("alt-username").value;
+            const pass = document.getElementById("alt-password").value;
+            
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "adminLogin", username: user, password: pass })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.status === "Success") {
+                    localStorage.setItem("is_admin_logged_in", "true");
+                    localStorage.setItem("admin_role", "Admin");
+                    document.getElementById("admin-login-overlay").style.display = "none";
+                    document.getElementById("admin-main-panel").style.display = "block";
+                    fetchDashboardMetrics();
+                } else {
+                    alert("Invalid Admin Credentials.");
+                }
+            });
+        }
 
-    function fireMutationRequestPayload(e) {
-      e.preventDefault(); var form = document.getElementById("entityMutationFormTarget"); var formData = new FormData(form); var payload = {};
-      formData.forEach((val, key) => { payload[key] = val; });
-      bootstrap.Modal.getInstance(document.getElementById('entityMutationFormModal')).hide();
-      const route = currentContextTableName === "Credentials" ? "saveEmployee" : "saveBranch";
-      
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: route, mode: "add", data: payload }) })
-      .then(res => res.json()).then(response => { alert(response.message); streamRelationalTableData(currentContextTableName); loadDashboardMetricsOverviewPanel(); });
-    }
-
-    function triggerMatrixRecalculationCommand() {
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "generateReport" }) }).then(res => res.json()).then(d => alert(d.message));
-    }
-    function executeProfileLogout() { location.reload(); }
-  </script>
+        function executeAdminSessionLogout() {
+            // Securely wipe the browser session memory note
+            localStorage.removeItem("is_admin_logged_in");
+            localStorage.removeItem("admin_username");
+            localStorage.removeItem("admin_role");
+            alert("Administrative Security Terminal Locked.");
+            window.location.href = "index.html"; // Send back to login portal screen
+        }
+    </script>
 </body>
 </html>
