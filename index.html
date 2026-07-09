@@ -228,14 +228,11 @@
             .then(result => {
                 document.getElementById("loading-screen").style.display = "none";
                 if (result.status === "Success") {
-                    if (result.role === "Admin") {
-                        // FIX: Save Admin token parameters securely to browser memory layout
-                        localStorage.setItem("is_admin_logged_in", "true");
-                        localStorage.setItem("admin_username", result.username);
-                        localStorage.setItem("admin_role", "Admin");
-                        
-                        alert("Administrative Account Verified. Routing to Control Terminal.");
-                        window.location.href = "admin.html"; // Open Admin Console directly
+    if (result.role === "Admin") {
+        alert("Administrative Account Verified. Routing to Control Terminal.");
+        
+        // FIX: Pass the login tokens directly inside the web link URL parameters
+        window.location.href = "admin.html?auth=true&role=Admin&user=" + encodeURIComponent(result.username);  // Open Admin Console directly
                     } else {
                         // Standard Employee Session Routine
                         alert(`Welcome back, ${result.employeeName}`);
