@@ -196,7 +196,6 @@
       }
     }
 
-    // Capture selfie frame
     function executeSelfiePunchLogRequest() {
       if (!currentDeviceLat || !currentDeviceLng) return alert("Position lock parameters matching timeout sync. Try again in 3 seconds.");
       var canvas = document.getElementById("processingBufferCanvas"); var video = document.getElementById("videoStream"); var context = canvas.getContext("2d");
