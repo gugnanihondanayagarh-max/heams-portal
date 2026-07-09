@@ -151,15 +151,20 @@
       }
     }
 
-    function fireSecureLoginRequest(e) {
-      e.preventDefault();
-      const uid = document.getElementById("usernameInputField").value.trim();
-      const pass = document.getElementById("passwordInputField").value;
-      const errBox = document.getElementById("loginErrorFrame");
-      errBox.classList.add("d-none");
-      toggleLoadingOverlayIndicator(true, "Securing transaction link...");
-      const hashedPass = CryptoJS.SHA256(pass).toString(CryptoJS.enc.Hex);
-
+    // Locate this block inside index.html:
+if (data.status === "Success") { 
+  // ADD THIS STRICT GUARD LOGIC:
+  if (data.role !== "Employee") {
+    toggleLoadingOverlayIndicator(false, "");
+    errBox.innerText = "Access Denied: Administrative credentials cannot log into the Employee Portal.";
+    errBox.classList.remove("d-none");
+    return;
+  }
+  
+  globalActiveUserSession = data; 
+  localStorage.setItem("HEAMS_USER_SESSION", JSON.stringify(globalActiveUserSession)); 
+  launchEmployeeDashboardView(); 
+}
       fetch(PRODUCTION_GAS_ENDPOINT_URL, {
         method: "POST",
         // Using text/plain prevents the web browser from dropping connections on modern strict CORS checking extensions
