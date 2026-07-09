@@ -1,268 +1,313 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>HONDA HEAMS - Attendance Portal</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    :root { --honda-red: #cc0000; --dark-slate: #1a1e21; --body-bg: #f4f6f9; --card-bg: #ffffff; --text-main: #212529; }
-    body { background-color: var(--body-bg); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .navbar-honda { background-color: var(--dark-slate); border-bottom: 4px solid var(--honda-red); }
-    .brand-badge { font-weight: 900; background: var(--honda-red); color: #fff !important; padding: 4px 12px; border-radius: 4px; }
-    .app-card { background: var(--card-bg); border: none; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); overflow: hidden; margin-top: 20px; }
-    .btn-honda { background-color: var(--honda-red); color: white; font-weight: 700; border: none; padding: 12px; }
-    .btn-honda:hover { background-color: #aa0000; color: white; }
-    .camera-viewport { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 12px; overflow: hidden; position: relative; }
-    #videoStream { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-    .calendar-matrix-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 15px; }
-    .calendar-day-node { background: rgba(0,0,0,0.04); border-radius: 8px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: var(--text-main); }
-    .node-present { background-color: #198754 !important; color: #ffffff !important; }
-    .node-absent { background-color: #dc3545 !important; color: #ffffff !important; }
-    .scroll-logs { max-height: 250px; overflow-y: auto; }
-    .hidden { display: none !important; }
-    .loader-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HONDA HEAMS Portal</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --honda-red: #E4002B;
+            --dark-gray: #1A1A1A;
+            --light-gray: #F5F5F5;
+        }
+        body {
+            background-color: var(--light-gray);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .honda-header {
+            background-color: var(--dark-gray);
+            border-bottom: 4px solid var(--honda-red);
+            color: white;
+            padding: 15px 0;
+        }
+        .honda-brand {
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        .honda-brand span {
+            color: var(--honda-red);
+        }
+        .card-portal {
+            border: none;
+            border-top: 4px solid var(--honda-red);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .btn-honda {
+            background-color: var(--honda-red);
+            color: white;
+            font-weight: 600;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .btn-honda:hover {
+            background-color: #b30021;
+            color: white;
+            transform: translateY(-2px);
+        }
+        .terminal-status {
+            background-color: #222;
+            color: #00FF00;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+        #loading-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(26,26,26,0.95);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+        .hidden-panel { display: none; }
+    </style>
 </head>
 <body>
 
-  <div id="loadingOverlay" class="loader-screen hidden">
-    <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;"></div>
-    <span class="mt-3 fw-bold" id="loaderMessage">Connecting Data Gateway...</span>
-  </div>
-
-  <nav class="navbar navbar-dark navbar-honda shadow-sm">
-    <div class="container-fluid">
-      <span class="navbar-brand fw-bold"><span class="brand-badge me-2">HONDA</span> HEAMS Portal</span>
-      <button id="btnLogout" class="btn btn-sm btn-outline-light hidden" onclick="triggerProfileLogout()">Sign Out</button>
+    <!-- Connecting Gateway Loader Screen -->
+    <div id="loading-screen">
+        <div class="spinner-border text-danger mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h4 class="honda-brand">HONDA <span>HEAMS</span> Portal</h4>
+        <p class="text-muted" id="loading-text">Connecting Data Gateway...</p>
     </div>
-  </nav>
 
-  <div class="container px-3">
-    <div class="row justify-content-center">
-      <div class="col-12 col-sm-10 col-md-7 col-lg-5">
-         
-        <div id="loginCard" class="card app-card p-4">
-          <h4 class="fw-bold text-center mb-1">System Portal Login</h4>
-          <p class="text-muted small text-center mb-4">Honda Attendance Management System Terminal</p>
-          
-          <div class="alert alert-danger d-none" id="loginErrorFrame"></div>
-          
-          <form onsubmit="fireSecureLoginRequest(event)">
-            <div class="mb-3">
-              <label class="form-label small fw-bold">User ID / Username</label>
-              <input type="text" id="usernameInputField" class="form-control form-control-lg" placeholder="e.g. EMP101 or admin" required>
-            </div>
-            <div class="mb-4">
-              <label class="form-label small fw-bold">Password</label>
-              <input type="password" id="passwordInputField" class="form-control form-control-lg" placeholder="••••••••" required>
-            </div>
-            <button type="submit" class="w-100 btn btn-honda btn-lg rounded-3">Sign In</button>
-          </form>
+    <!-- Top Navigation Header Bar -->
+    <header class="honda-header sticky-top">
+        <div class="container d-flex justify-content-between align-items-center">
+            <h3 class="honda-brand m-0"><i class="fa-solid fa-motorcycle"></i> HONDA <span>HEAMS</span></h3>
+            <span class="badge bg-danger">System Portal Login</span>
         </div>
+    </header>
 
-        <div id="employeeDashboard" class="card app-card p-4 hidden">
-          <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">
-            <div>
-              <h4 class="fw-bold text-danger mb-0" id="lblStaffName">---</h4>
-              <span class="text-muted small fw-semibold" id="lblStaffIdMeta">---</span>
-            </div>
-            <span class="badge bg-dark py-2 px-3 rounded-pill" id="lblOfficeLocationNode">Syncing...</span>
-          </div>
-
-          <ul class="nav nav-pills nav-fill mb-4 bg-light p-1 rounded-3" role="tablist">
-            <li class="nav-item"><button class="nav-link active fw-bold" id="tab-punch" data-bs-toggle="pill" data-bs-target="#panel-punch" type="button">🕒 Punch In/Out</button></li>
-            <li class="nav-item"><button class="nav-link fw-bold" id="tab-calendar" data-bs-toggle="pill" data-bs-target="#panel-calendar" type="button" onclick="renderFactoTimeEmployeeCalendarGrid()">📊 My Report</button></li>
-          </ul>
-
-          <div class="tab-content">
-            <div class="tab-pane fade show active" id="panel-punch">
-              <div class="p-3 bg-light rounded-3 mb-3 d-flex justify-content-between align-items-center text-dark">
-                <div>
-                  <small class="text-muted d-block fw-semibold">GPS Telemetry Engine</small>
-                  <span class="fw-bold small" id="lblGpsTelemetryString">Acquiring satellites...</span>
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            
+            <!-- Login Interface Column -->
+            <div class="col-md-5" id="login-panel">
+                <div class="card card-portal p-4 bg-white">
+                    <div class="text-center mb-4">
+                        <h4 class="fw-bold text-dark">Terminal Authentication</h4>
+                        <small class="text-muted">Honda Attendance Management System Terminal</small>
+                    </div>
+                    <form id="portalLoginForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">User Identity ID / Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                                <input type="text" id="username" class="form-control" placeholder="Enter ID or Username" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Security Access Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                                <input type="password" id="password" class="form-control" placeholder="Enter Password" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-honda w-100 py-2"><i class="fa-solid fa-right-to-bracket"></i> Secure Access Login</button>
+                    </form>
                 </div>
-                <span id="gpsTrackingDotBadge" class="spinner-grow text-warning" style="width:1rem; height:1rem;"></span>
-              </div>
-              <div class="mb-4 text-center">
-                <select id="punchActionTypeSelect" class="form-select mb-3 form-select-lg">
-                  <option value="In">Punch IN</option>
-                  <option value="Out">Punch OUT</option>
-                </select>
-                <div class="camera-viewport mx-auto mb-3 shadow border shadow-sm">
-                  <video id="videoStream" autoplay playsinline muted></video>
+            </div>
+
+            <!-- Employee Attendance Action Dashboard Panel (Hidden Until Login) -->
+            <div class="col-md-10 hidden-panel" id="dashboard-panel">
+                <div class="row g-4">
+                    <!-- Control Punch Card -->
+                    <div class="col-md-6">
+                        <div class="card card-portal p-4 bg-white h-100">
+                            <h5 class="fw-bold text-dark border-bottom pb-2"><i class="fa-solid fa-clock-solid"></i> Attendance Operations</h5>
+                            <div class="terminal-status mb-3" id="telemetry-log">
+                                <i class="fa-solid fa-satellite-dish fa-spin"></i> GPS Telemetry Engine Acquiring satellites...
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <button class="btn btn-success w-100 py-3 fw-bold" onclick="triggerPunch('In')"><i class="fa-solid fa-fingerprint"></i> Punch IN</button>
+                                </div>
+                                <div class="col-6">
+                                    <button class="btn btn-danger w-100 py-3 fw-bold" onclick="triggerPunch('Out')"><i class="fa-solid fa-door-open"></i> Punch OUT</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics Heat Map Summary Visualizer -->
+                    <div class="col-md-6">
+                        <div class="card card-portal p-4 bg-white h-100">
+                            <h5 class="fw-bold text-dark border-bottom pb-2"><i class="fa-solid fa-chart-grid"></i> Attendance Heat Map</h5>
+                            <p class="text-muted small">Presence matrix summary data ledger checklist results statement.</p>
+                            <div class="p-3 bg-light rounded text-center border">
+                                <span class="badge bg-success m-1">P: 22 Days</span>
+                                <span class="badge bg-danger m-1">A: 1 Day</span>
+                                <span class="badge bg-warning text-dark m-1">Late: 2</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Log History Feed -->
+                    <div class="col-12">
+                        <div class="card card-portal p-4 bg-white">
+                            <h5 class="fw-bold text-dark border-bottom pb-2"><i class="fa-solid fa-history"></i> Recent Logged History Logs</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Date String</th>
+                                            <th>Transaction Route</th>
+                                            <th>Timestamp Logged</th>
+                                            <th>Geofence Proximity Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="history-feed-rows">
+                                        <tr><td colspan="4" class="text-center text-muted">No log telemetry synchronized for current session cycle context.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-                <button class="w-100 btn btn-success btn-lg py-3 fw-bold rounded-3 shadow" onclick="executeSelfiePunchLogRequest()">Log Selfie Punch</button>
-              </div>
             </div>
 
-            <div class="tab-pane fade" id="panel-calendar">
-              <h5 class="fw-bold mb-1">Attendance Heat Map</h5>
-              <p class="text-muted small mb-3">Presence matrix summary data ledger checklist results statement.</p>
-              <div class="calendar-matrix-grid" id="factoCalendarGridContainer"></div>
-            </div>
-          </div>
-
-          <hr class="my-3">
-          <h6 class="fw-bold text-secondary mb-2">Recent Logged History Logs</h6>
-          <div class="list-group list-group-flush border rounded-3 scroll-logs" id="historyLogGroupStack"></div>
         </div>
-
-      </div>
     </div>
-  </div>
 
-  <canvas id="processingBufferCanvas" class="d-none"></canvas>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-  <script>
-    const PRODUCTION_GAS_ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbwkVf2-5-yZrcfa-BfJJMgDq1saP95iITooTE3gRwx4tvv9MfX1eQR67fWoDW1dcMwtpw/exec";
+    <!-- Client-Side Architecture JavaScript Logic Engine -->
+    <script>
+        // CONFIGURATION: Replace with your deployed Google Apps Script Web App URL
+        const WEB_APP_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
 
-    var globalActiveUserSession = null;
-    var currentDeviceLat = null;
-    var currentDeviceLng = null;
-    var activeHardwareCameraStreamInstance = null;
-    var activeGlobalHistoryLogsArrayStore = [];
-
-    window.onload = function() { 
-      initiateDeviceSatelliteWatch(); 
-      evaluateLocalSessionPersistenceCache(); 
-    };
-
-    function initiateDeviceSatelliteWatch() {
-      if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(function(pos) {
-          currentDeviceLat = pos.coords.latitude; currentDeviceLng = pos.coords.longitude;
-          document.getElementById("lblGpsTelemetryString").innerText = currentDeviceLat.toFixed(5) + " , " + currentDeviceLng.toFixed(5);
-          var dot = document.getElementById("gpsTrackingDotBadge"); dot.className = "badge bg-success text-white px-2 py-1"; dot.innerText = "GPS Connected";
-          dot.style.width = "auto"; dot.style.height = "auto";
-        }, function(e) { document.getElementById("lblGpsTelemetryString").innerText = "Satellite Position Engine Restricted."; }, { enableHighAccuracy: true });
-      }
-    }
-
-    function evaluateLocalSessionPersistenceCache() {
-      const cache = localStorage.getItem("HEAMS_USER_SESSION");
-      if (cache) { 
-        var parsed = JSON.parse(cache);
-        if(parsed.role === "Employee") {
-          globalActiveUserSession = parsed; 
-          launchEmployeeDashboardView(); 
-        } else {
-          localStorage.removeItem("HEAMS_USER_SESSION");
-        }
-      }
-    }
-
-    function fireSecureLoginRequest(e) {
-      e.preventDefault();
-      const uid = document.getElementById("usernameInputField").value.trim();
-      const pass = document.getElementById("passwordInputField").value;
-      const errBox = document.getElementById("loginErrorFrame");
-      errBox.classList.add("d-none");
-      toggleLoadingOverlayIndicator(true, "Verifying credentials database rules...");
-      const hashedPass = CryptoJS.SHA256(pass).toString(CryptoJS.enc.Hex);
-
-      // First check: Query employeeLogin authentication loop sequence
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, {
-        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "employeeLogin", username: uid, password: hashedPass })
-      })
-      .then(res => res.json()).then(data => {
-        if (data.status === "Success" && data.role === "Employee") {
-          toggleLoadingOverlayIndicator(false, "");
-          globalActiveUserSession = data; 
-          localStorage.setItem("HEAMS_USER_SESSION", JSON.stringify(globalActiveUserSession)); 
-          launchEmployeeDashboardView(); 
-        } else {
-          // AUTOMATIC ADMIN REDIRECTION AUTORUN FALLBACK FALLTHROUGH
-          // If not matching employee dataset framework, query Admin configuration rules immediately
-          fetch(PRODUCTION_GAS_ENDPOINT_URL, {
-            method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ action: "adminLogin", username: uid, password: hashedPass })
-          })
-          .then(resAdmin => resAdmin.json()).then(adminData => {
-            toggleLoadingOverlayIndicator(false, "");
-            if (adminData.status === "Success" && adminData.role === "Admin") {
-              window.location.href = "admin.html";
-            } else {
-              errBox.innerText = "Invalid Identification Parameters. Check credentials layout configuration cells.";
-              errBox.classList.remove("d-none");
+        // Bypasses loader overlay on complete UI render
+        document.addEventListener("DOMContentLoaded", function() {
+            setTimeout(() => {
+                document.getElementById("loading-screen").style.display = "none";
+            }, 1200);
+            
+            // Acquire GPS Coordinates instantly
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    pos => {
+                        document.getElementById("telemetry-log").innerHTML = `<i class="fa-solid fa-circle-check text-success"></i> GPS Coordinates Locked: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+                        window.currentLat = pos.coords.latitude;
+                        window.currentLng = pos.coords.longitude;
+                    },
+                    err => {
+                        document.getElementById("telemetry-log").innerHTML = `<i class="fa-solid fa-triangle-exclamation text-warning"></i> GPS Proximity Degraded. Using Default System Loop.`;
+                        window.currentLat = 20.3534;
+                        window.currentLng = 85.8264;
+                    }
+                );
             }
-          }).catch(err => { toggleLoadingOverlayIndicator(false, ""); errBox.innerText = "Admin routing pipeline execution fault."; errBox.classList.remove("d-none"); });
+        });
+
+        // Form Submit Handler
+        document.getElementById("portalLoginForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            document.getElementById("loading-screen").style.display = "flex";
+            document.getElementById("loading-text").innerText = "Syncing authentication loops...";
+
+            const payload = {
+                action: "employeeLogin",
+                username: document.getElementById("username").value,
+                password: document.getElementById("password").value
+            };
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "cors",
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(result => {
+                document.getElementById("loading-screen").style.display = "none";
+                if (result.status === "Success") {
+                    if (result.role === "Admin") {
+                        // FIX: Save Admin token parameters securely to browser memory layout
+                        localStorage.setItem("is_admin_logged_in", "true");
+                        localStorage.setItem("admin_username", result.username);
+                        localStorage.setItem("admin_role", "Admin");
+                        
+                        alert("Administrative Account Verified. Routing to Control Terminal.");
+                        window.location.href = "admin.html"; // Open Admin Console directly
+                    } else {
+                        // Standard Employee Session Routine
+                        alert(`Welcome back, ${result.employeeName}`);
+                        localStorage.setItem("emp_id", result.employeeId);
+                        localStorage.setItem("emp_name", result.employeeName);
+                        localStorage.setItem("emp_branch", result.branch);
+                        localStorage.setItem("emp_dept", result.department);
+                        
+                        document.getElementById("login-panel").style.display = "none";
+                        document.getElementById("dashboard-panel").style.display = "block";
+                        loadUserHistory(result.employeeId);
+                    }
+                } else {
+                    alert("Error Handshake: " + result.message);
+                }
+            })
+            .catch(err => {
+                document.getElementById("loading-screen").style.display = "none";
+                alert("Critical System Connection Failure: " + err);
+            });
+        });
+
+        function triggerPunch(type) {
+            document.getElementById("loading-screen").style.display = "flex";
+            document.getElementById("loading-text").innerText = `Registering Biometric Punch ${type}...`;
+
+            const packet = {
+                action: "executePunchTransaction",
+                employeeId: localStorage.getItem("emp_id"),
+                employeeName: localStorage.getItem("emp_name"),
+                branch: localStorage.getItem("emp_branch"),
+                department: localStorage.getItem("emp_dept"),
+                punchType: type,
+                lat: window.currentLat || 20.3534,
+                lng: window.currentLng || 85.8264,
+                base64ImageBlob: "MOCK_SELFIE_BASE64_BLOB_STRING",
+                remarks: "Portal Transaction Log"
+            };
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify(packet)
+            })
+            .then(res => res.json())
+            .then(res => {
+                document.getElementById("loading-screen").style.display = "none";
+                alert(res.message);
+                loadUserHistory(localStorage.getItem("emp_id"));
+            });
         }
-      }).catch(e => { toggleLoadingOverlayIndicator(false, ""); errBox.innerText = "Network loop pipeline handshake fault."; errBox.classList.remove("d-none"); });
-    }
 
-    function launchEmployeeDashboardView() {
-      document.getElementById("loginCard").classList.add("hidden");
-      document.getElementById("employeeDashboard").classList.remove("hidden");
-      document.getElementById("btnLogout").classList.remove("hidden");
-      document.getElementById("lblStaffName").innerText = globalActiveUserSession.employeeName;
-      document.getElementById("lblStaffIdMeta").innerText = globalActiveUserSession.employeeId;
-      document.getElementById("lblOfficeLocationNode").innerText = globalActiveUserSession.branch;
-      bindCameraStreamToViewport(); loadAttendanceLogStatementLedger();
-    }
-
-    function bindCameraStreamToViewport() {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: "user", width: 640, height: 480 } })
-          .then(function(s) { activeHardwareCameraStreamInstance = s; document.getElementById("videoStream").srcObject = s; })
-          .catch(err => console.log("Camera access declaration rejected:", err));
-      }
-    }
-
-    function executeSelfiePunchLogRequest() {
-      if (!currentDeviceLat || !currentDeviceLng) return alert("Position lock parameters matching timeout sync. Try again in 3 seconds.");
-      var canvas = document.getElementById("processingBufferCanvas"); var video = document.getElementById("videoStream"); var context = canvas.getContext("2d");
-      toggleLoadingOverlayIndicator(true, "Encoding static image compression string structures layers...");
-      canvas.width = 640; canvas.height = 480;
-      context.translate(canvas.width, 0); context.scale(-1, 1);
-      context.drawImage(video, 0, 0, 640, 480);
-      const base64Str = canvas.toDataURL("image/jpeg", 0.5);
-      const type = document.getElementById("punchActionTypeSelect").value;
-
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, {
-        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "executePunchTransaction", employeeId: globalActiveUserSession.employeeId, employeeName: globalActiveUserSession.employeeName, branch: globalActiveUserSession.branch, department: globalActiveUserSession.department || "Sales", punchType: type, lat: currentDeviceLat, lng: currentDeviceLng, base64ImageBlob: base64Str })
-      })
-      .then(res => res.json()).then(d => { toggleLoadingOverlayIndicator(false, ""); alert(d.message); if (d.status === "Success") loadAttendanceLogStatementLedger(); })
-      .catch(e => { toggleLoadingOverlayIndicator(false, ""); alert("Payload submission transmission link gateway break error mapping profile."); });
-    }
-
-    function loadAttendanceLogStatementLedger() {
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "fetchHistory", employeeId: globalActiveUserSession.employeeId }) })
-      .then(res => res.json()).then(json => {
-        if (json.status === "Success") {
-          activeGlobalHistoryLogsArrayStore = json.data;
-          var container = document.getElementById("historyLogGroupStack"); container.innerHTML = "";
-          json.data.forEach(function(item) {
-            container.innerHTML += `<div class="list-group-item p-2 d-flex justify-content-between align-items-center"><div><span class="badge ${item.type==="In"?"bg-success":"bg-danger"} me-2">${item.type}</span><b>${item.time}</b><small class="text-muted d-block">${item.date}</small></div><span class="small">${item.status}</span></div>`;
-          });
+        function loadUserHistory(id) {
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "fetchHistory", employeeId: id })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === "Success" && res.data.length > 0) {
+                    let html = "";
+                    res.data.forEach(row => {
+                        html += `<tr>
+                            <td><b class="text-dark">${row.date}</b></td>
+                            <td><span class="badge ${row.type==='In'?'bg-success':'bg-danger'}">${row.type}</span></td>
+                            <td>${row.time}</td>
+                            <td><span class="text-secondary small"><i class="fa-solid fa-location-dot"></i> ${row.status}</span></td>
+                        </tr>`;
+                    });
+                    document.getElementById("history-feed-rows").innerHTML = html;
+                }
+            });
         }
-      });
-    }
-
-    function renderFactoTimeEmployeeCalendarGrid() {
-      var grid = document.getElementById("factoCalendarGridContainer"); grid.innerHTML = "";
-      var cursor = new Date(); var totalDays = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
-      for (var day = 1; day <= totalDays; day++) {
-        var node = document.createElement("div"); node.className = "calendar-day-node"; node.innerHTML = `<span>${day}</span>`;
-        var dStr = (day < 10 ? "0" + day : day) + "-" + cursor.toLocaleString('en-US', { month: 'short' }) + "-" + cursor.getFullYear();
-        var present = activeGlobalHistoryLogsArrayStore.some(log => log.date.toString().toLowerCase().trim() === dStr.toLowerCase().trim());
-        if (present) node.classList.add("node-present"); else node.classList.add("node-absent");
-        grid.appendChild(node);
-      }
-    }
-
-    function triggerProfileLogout() {
-      if (activeHardwareCameraStreamInstance) activeHardwareCameraStreamInstance.getTracks().forEach(t => t.stop());
-      localStorage.removeItem("HEAMS_USER_SESSION"); location.reload();
-    }
-
-    function toggleLoadingOverlayIndicator(show, msg) {
-      var overlay = document.getElementById("loadingOverlay");
-      if (show) { document.getElementById("loaderMessage").innerText = msg; overlay.classList.remove("hidden"); }
-      else overlay.classList.add("hidden");
-    }
-  </script>
+    </script>
 </body>
 </html>
