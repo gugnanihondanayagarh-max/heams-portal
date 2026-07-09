@@ -156,44 +156,43 @@
       }
     }
 
-    function fireSecureLoginRequest(e) {
-      e.preventDefault();
-      const uid = document.getElementById("usernameInputField").value.trim();
-      const pass = document.getElementById("passwordInputField").value;
-      const errBox = document.getElementById("loginErrorFrame");
-      errBox.classList.add("d-none");
-      toggleLoadingOverlayIndicator(true, "Securing transaction link...");
-      const hashedPass = CryptoJS.SHA256(pass).toString(CryptoJS.enc.Hex);
+function fireSecureLoginRequest(e) {
+  e.preventDefault();
+  const uid = document.getElementById("usernameInputField").value.trim();
+  const pass = document.getElementById("passwordInputField").value;
+  const errBox = document.getElementById("loginErrorFrame");
+  errBox.classList.add("d-none");
+  toggleLoadingOverlayIndicator(true, "Securing transaction link...");
+  const hashedPass = CryptoJS.SHA256(pass).toString(CryptoJS.enc.Hex);
 
-      fetch(PRODUCTION_GAS_ENDPOINT_URL, {
-        method: "POST", 
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "employeeLogin", username: uid, password: hashedPass })
-      })
-      .then(res => res.json())
-      .then(data => {
-        toggleLoadingOverlayIndicator(false, "");
-        if (data.status === "Success") { 
-          if(data.role !== "Employee") {
-            errBox.innerText = "Access Restricted: Administrative profiles cannot access employee resources.";
-            errBox.classList.remove("d-none");
-            return;
-          }
-          globalActiveUserSession = data; 
-          localStorage.setItem("HEAMS_USER_SESSION", JSON.stringify(globalActiveUserSession)); 
-          launchEmployeeDashboardView(); 
-        } else { 
-          errBox.innerText = data.message; 
-          errBox.classList.remove("d-none"); 
-        }
-      })
-      .catch(e => { 
-        toggleLoadingOverlayIndicator(false, ""); 
-        errBox.innerText = "Connection loop pipeline handshake fault."; 
-        errBox.classList.remove("d-none"); 
-      });
+  fetch(PRODUCTION_GAS_ENDPOINT_URL, {
+    method: "POST", 
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "employeeLogin", username: uid, password: hashedPass })
+  })
+  .then(res => res.json())
+  .then(data => {
+    toggleLoadingOverlayIndicator(false, "");
+    if (data.status === "Success") { 
+      if(data.role !== "Employee") {
+        errBox.innerText = "Access Restricted: Administrative profiles cannot access employee resources.";
+        errBox.classList.remove("d-none");
+        return;
+      }
+      globalActiveUserSession = data; 
+      localStorage.setItem("HEAMS_USER_SESSION", JSON.stringify(globalActiveUserSession)); 
+      launchEmployeeDashboardView(); 
+    } else { 
+      errBox.innerText = data.message; 
+      errBox.classList.remove("d-none"); 
     }
-
+  })
+  .catch(e => { 
+    toggleLoadingOverlayIndicator(false, ""); 
+    errBox.innerText = "Connection loop pipeline handshake fault."; 
+    errBox.classList.remove("d-none"); 
+  });
+}
     function launchEmployeeDashboardView() {
       document.getElementById("loginCard").classList.add("hidden");
       document.getElementById("employeeDashboard").classList.remove("hidden");
