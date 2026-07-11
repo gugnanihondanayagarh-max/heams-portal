@@ -3,306 +3,829 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HONDA HEAMS Portal</title>
+    <title>EAMS - Employee Portal</title>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#E4002B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3652/3652191.png">
+    
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome Icons -->
+    <!-- FontAwesome 6 Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style Modules -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/attendance.css">
+    
     <style>
-        :root {
-            --honda-red: #E4002B;
-            --dark-gray: #1A1A1A;
-            --light-gray: #F5F5F5;
-        }
-        body {
-            background-color: var(--light-gray);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .honda-header {
-            background-color: var(--dark-gray);
-            border-bottom: 4px solid var(--honda-red);
-            color: white;
-            padding: 15px 0;
-        }
-        .honda-brand {
-            font-weight: 800;
-            letter-spacing: 1px;
-        }
-        .honda-brand span {
-            color: var(--honda-red);
-        }
-        .card-portal {
-            border: none;
-            border-top: 4px solid var(--honda-red);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-        .btn-honda {
-            background-color: var(--honda-red);
-            color: white;
-            font-weight: 600;
-            border: none;
-            transition: all 0.3s ease;
-        }
-        .btn-honda:hover {
-            background-color: #b30021;
-            color: white;
-            transform: translateY(-2px);
-        }
-        .terminal-status {
-            background-color: #222;
-            color: #00FF00;
-            font-family: 'Courier New', Courier, monospace;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 0.85rem;
-        }
-        #loading-screen {
+        /* Specific bottom navigation bar for mobile first index layout */
+        .bottom-nav-bar {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(26,26,26,0.95);
-            z-index: 9999;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--light-panel);
+            border-top: 1px solid var(--light-border);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            z-index: 1020;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.03);
+            transition: var(--transition);
+        }
+        body.dark-mode .bottom-nav-bar {
+            background: var(--dark-panel);
+            border-top-color: var(--dark-border);
+        }
+        .bottom-nav-link {
             display: flex;
             flex-direction: column;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--light-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        body.dark-mode .bottom-nav-link {
+            color: var(--dark-muted);
+        }
+        .bottom-nav-link i {
+            font-size: 1.25rem;
+            margin-bottom: 2px;
+        }
+        .bottom-nav-link.active {
+            color: var(--brand-color);
+        }
+        .employee-view-section {
+            padding-bottom: 80px; /* buffer for bottom bar */
+        }
+        /* Custom calendar stylesheet for employee history screen */
+        .calendar-wrapper {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .calendar-header-day {
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--light-muted);
+        }
+        body.dark-mode .calendar-header-day {
+            color: var(--dark-muted);
+        }
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
             justify-content: center;
             align-items: center;
-            color: white;
+            background: var(--light-bg);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            position: relative;
+            cursor: pointer;
+            border: 1px solid var(--light-border);
+            transition: var(--transition);
         }
-        .hidden-panel { display: none; }
+        body.dark-mode .calendar-day {
+            background: rgba(255, 255, 255, 0.02);
+            border-color: var(--dark-border);
+        }
+        .calendar-day.empty {
+            background: transparent;
+            border-color: transparent;
+            cursor: default;
+        }
+        .calendar-day.present {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border-color: var(--success);
+        }
+        .calendar-day.absent {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+        .calendar-day.late {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            border-color: var(--warning);
+        }
+        .calendar-day.mismatch {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+        .today-state-box, .themed-badge-box {
+            background: rgba(0, 0, 0, 0.02);
+            border: 1px solid var(--light-border);
+            color: var(--light-text);
+        }
+        body.dark-mode .today-state-box, body.dark-mode .themed-badge-box {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: var(--dark-border);
+            color: var(--dark-text);
+        }
+        .day-number {
+            z-index: 2;
+        }
+        .text-muted-custom {
+            color: var(--light-muted) !important;
+        }
+        body.dark-mode .text-muted-custom {
+            color: rgba(255, 255, 255, 0.55) !important;
+        }
+        .calendar-day.half {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            border-color: var(--warning);
+        }
+        .calendar-day.weekly-off, .calendar-day.holiday {
+            background: rgba(128, 128, 128, 0.08);
+            color: var(--light-muted);
+            border-color: var(--light-border);
+        }
+        body.dark-mode .calendar-day.weekly-off, body.dark-mode .calendar-day.holiday {
+            color: var(--dark-muted);
+            border-color: var(--dark-border);
+        }
+        .day-status-letter {
+            font-size: 0.8rem;
+            margin-top: 1px;
+            display: block;
+        }
     </style>
 </head>
-<body>
+<body class="employee-restricted-context">
 
     <!-- Connecting Gateway Loader Screen -->
-    <div id="loading-screen">
-        <div class="spinner-border text-danger mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-        <h4 class="honda-brand">HONDA <span>HEAMS</span> Portal</h4>
-        <p class="text-muted" id="loading-text">Connecting Data Gateway...</p>
+    <div id="loading-gateway-screen" style="display: none;">
+        <div class="spinner-brand"></div>
+        <h4 class="fw-bold m-0" style="letter-spacing: 0.5px;"><span>EAMS</span></h4>
+        <p class="text-muted mt-2 small">Synchronizing secure clock matrices...</p>
     </div>
 
-    <!-- Top Navigation Header Bar -->
-    <header class="honda-header sticky-top">
-        <div class="container d-flex justify-content-between align-items-center">
-            <h3 class="honda-brand m-0"><i class="fa-solid fa-motorcycle"></i> HONDA <span>HEAMS</span></h3>
-            <span class="badge bg-danger">System Portal Login</span>
-        </div>
-    </header>
-
-    <div class="container my-5">
-        <div class="row justify-content-center">
+    <!-- Login Authentication View -->
+    <div id="view-login" class="container-fluid flex-center min-vh-100" style="background: linear-gradient(135deg, #111111 0%, #1c1c24 100%);">
+        <div class="glass-card p-4 mx-auto w-100 animated-fade-in-up" style="max-width: 400px; background: rgba(30, 30, 38, 0.75); border-color: rgba(255,255,255,0.06); color: #FFFFFF;">
+            <div class="text-center mb-4">
+                <svg viewBox="0 0 512 512" class="mb-2" style="width: 3.5rem; height: 3.5rem;" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h211c-13.8-19.1-22-42.5-22-68 0-61.9 50.1-112 112-112 25.5 0 48.9 8.2 68 22V422.4c0-74.2-60.2-134.4-134.4-134.4z"/><circle cx="400" cy="400" r="112" fill="#4caf50"/><path d="M340 400 l40 40 l80 -80" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                <h3 class="fw-bold mb-1"><span>EAMS</span></h3>
+                <small class="text-muted uppercase">Attendance Portal Login</small>
+            </div>
             
-            <!-- Login Interface Column -->
-            <div class="col-md-5" id="login-panel">
-                <div class="card card-portal p-4 bg-white">
-                    <div class="text-center mb-4">
-                        <h4 class="fw-bold text-dark">Terminal Authentication</h4>
-                        <small class="text-muted">Honda Attendance Management System Terminal</small>
+            <form id="form-login-gate">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted">Employee ID / Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-secondary text-muted"><i class="fa-solid fa-user"></i></span>
+                        <input type="text" id="login-uid" class="form-control bg-white border-secondary text-dark" placeholder="e.g. EMP001" required>
                     </div>
-                    <form id="portalLoginForm">
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">User Identity ID / Username</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
-                                <input type="text" id="username" class="form-control" placeholder="Enter ID or Username" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted">Access Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-secondary text-muted"><i class="fa-solid fa-lock"></i></span>
+                        <input type="password" id="login-pass" class="form-control bg-white border-secondary text-dark" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-4 small">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="login-remember">
+                        <label class="form-check-label text-muted" for="login-remember">Remember ID</label>
+                    </div>
+                    <a href="admin.html" class="text-decoration-none text-brand fw-bold">Admin Console</a>
+                </div>
+                <button type="submit" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-right-to-bracket"></i> Secure Access Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Employee Authenticated SPA Layout -->
+    <div id="employee-panel-layout" style="display: none;">
+        <!-- Top Sticky Header -->
+        <header class="brand-navbar">
+            <div class="navbar-brand-logo">
+                <svg viewBox="0 0 512 512" style="width: 2rem; height: 2rem; margin-right: 10px;" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h211c-13.8-19.1-22-42.5-22-68 0-61.9 50.1-112 112-112 25.5 0 48.9 8.2 68 22V422.4c0-74.2-60.2-134.4-134.4-134.4z"/><circle cx="400" cy="400" r="112" fill="#4caf50"/><path d="M340 400 l40 40 l80 -80" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                <h4 class="brand-title">EAMS</h4>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <button id="theme-toggle-emp" class="theme-toggle-btn"><i class="fa-solid fa-moon"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="Auth.logout()"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+        </header>
+
+        <!-- Dynamic Employee Views Wrapper -->
+        <main class="container py-4 employee-view-section">
+            
+            <!-- View: Dashboard -->
+            <div id="view-dashboard" class="employee-view" style="display: none;">
+                <div class="glass-card p-4 mb-4 text-center">
+                    <h5 class="text-muted-custom mb-1">Welcome back,</h5>
+                    <h3 class="fw-bold text-brand mb-3" id="employee-welcome-name">Employee</h3>
+                    <div class="p-3 today-state-box rounded text-center d-inline-block small" style="min-width: 250px;">
+                        <span class="fw-semibold text-muted-custom">Today's State:</span>
+                        <div class="mt-1 fw-bold" id="dash-punch-state">Checking status...</div>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-danger" onclick="EmployeeApp.openCorrectionModal()"><i class="fa-solid fa-clock-rotate-left"></i> Request Missed Punch Correction</button>
+                    </div>
+                </div>
+
+                <!-- FactoTime stats grid -->
+                <div class="metric-grid">
+                    <div class="metric-card-custom present">
+                        <div class="metric-icon-wrapper"><i class="fa-solid fa-calendar-check"></i></div>
+                        <div class="metric-info">
+                            <h6 class="metric-label">Presents</h6>
+                            <h3 class="metric-val" id="stat-present">0</h3>
+                        </div>
+                    </div>
+                    <div class="metric-card-custom absent">
+                        <div class="metric-icon-wrapper"><i class="fa-solid fa-calendar-times"></i></div>
+                        <div class="metric-info">
+                            <h6 class="metric-label">Absents</h6>
+                            <h3 class="metric-val" id="stat-absent">0</h3>
+                        </div>
+                    </div>
+                    <div class="metric-card-custom late">
+                        <div class="metric-icon-wrapper"><i class="fa-solid fa-clock"></i></div>
+                        <div class="metric-info">
+                            <h6 class="metric-label">Late Days</h6>
+                            <h3 class="metric-val" id="stat-late">0</h3>
+                        </div>
+                    </div>
+                    <div class="metric-card-custom leave">
+                        <div class="metric-icon-wrapper"><i class="fa-solid fa-plane-departure"></i></div>
+                        <div class="metric-info">
+                            <h6 class="metric-label">Leaves Used</h6>
+                            <h3 class="metric-val" id="stat-leaves">0</h3>
+                        </div>
+                    </div>
+                    <div class="metric-card-custom late" style="border-left-color: var(--warning);">
+                        <div class="metric-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);"><i class="fa-solid fa-business-time"></i></div>
+                        <div class="metric-info">
+                            <h6 class="metric-label">Half Days</h6>
+                            <h3 class="metric-val" id="stat-half">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Layout Details -->
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="glass-card chart-panel-card h-100">
+                            <div class="chart-title-header">
+                                <h5><i class="fa-solid fa-business-time text-brand"></i> Shift & Branch</h5>
+                            </div>
+                            <div class="shift-details-box">
+                                <div class="shift-row">
+                                    <span class="shift-row-label">Branch Location</span>
+                                    <span class="shift-row-val" id="dash-branch-name">--</span>
+                                </div>
+                                <div class="shift-row">
+                                    <span class="shift-row-label">Office Hours</span>
+                                    <span class="shift-row-val" id="dash-office-timing">--</span>
+                                </div>
+                                <div class="shift-row">
+                                    <span class="shift-row-label">Shift Hours Policy</span>
+                                    <span class="shift-row-val">Full Day Required</span>
+                                </div>
+                            </div>
+                            <!-- Circular Attendance Percentage Indicator -->
+                            <div class="circular-progress-container">
+                                <svg width="150" height="150" viewBox="0 0 150 150">
+                                    <circle class="svg-circle-bg" cx="75" cy="75" r="60" />
+                                    <circle id="circle-progress-fill" class="svg-circle-progress" cx="75" cy="75" r="60" stroke-dashoffset="0" />
+                                </svg>
+                                <div class="circular-text">
+                                    <div class="circular-percentage" id="circle-progress-text">100%</div>
+                                    <div class="circular-label">Attendance</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Security Access Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                                <input type="password" id="password" class="form-control" placeholder="Enter Password" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="glass-card chart-panel-card h-100">
+                            <div class="chart-title-header">
+                                <h5><i class="fa-solid fa-history text-brand"></i> Recent Activity logs</h5>
+                            </div>
+                            <div class="history-feed-list" id="recent-activities-list">
+                                <div class="text-center py-4"><div class="spinner-border text-danger"></div></div>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-honda w-100 py-2"><i class="fa-solid fa-right-to-bracket"></i> Secure Access Login</button>
-                    </form>
+                    </div>
                 </div>
             </div>
 
-            <!-- Employee Attendance Action Dashboard Panel (Hidden Until Login) -->
-            <div class="col-md-10 hidden-panel" id="dashboard-panel">
+            <!-- View: Punch Screen -->
+            <div id="view-punch" class="employee-view" style="display: none;">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="glass-card p-4 punch-frame">
+                            <h4 class="fw-bold text-center text-brand mb-1"><i class="fa-solid fa-camera"></i> Selfie Geofence Verification</h4>
+                            <p class="text-muted text-center small mb-3">Front camera snap & branch radius checks required.</p>
+
+                            <!-- Camera frame -->
+                            <div class="camera-viewport-container">
+                                <video id="camera-stream" class="camera-stream-video" autoplay playsinline></video>
+                                <img id="selfie-preview" class="captured-image-preview" src="" alt="Captured Selfie">
+                                <div class="camera-overlay-mask">
+                                    <div class="camera-guide-ellipse"></div>
+                                </div>
+                            </div>
+
+                            <!-- Camera controls -->
+                            <div class="camera-actions-row">
+                                <button id="btn-capture-selfie" class="camera-action-btn camera-btn-capture"><i class="fa-solid fa-camera-retro"></i> Capture Selfie</button>
+                                <button id="btn-retake-selfie" class="camera-action-btn camera-btn-retake" style="display: none;"><i class="fa-solid fa-rotate-left"></i> Retake Photo</button>
+                            </div>
+
+                            <!-- GPS Data Box -->
+                            <div class="geo-telemetry-panel">
+                                <div class="geo-row">
+                                    <i class="fa-solid fa-satellite-dish geo-icon"></i>
+                                    <div class="geo-details">
+                                        <h6 class="geo-title">Geofence Proximity</h6>
+                                        <div class="mt-1"><span id="gps-status-badge" class="geo-status-indicator pending">Acquiring Satellites...</span></div>
+                                    </div>
+                                </div>
+                                <div class="geo-row">
+                                    <i class="fa-solid fa-map-location-dot geo-icon"></i>
+                                    <div class="geo-details">
+                                        <h6 class="geo-title">GPS Coordinates</h6>
+                                        <p class="geo-value"><span id="gps-latitude">--</span>, <span id="gps-longitude">--</span></p>
+                                        <div class="accuracy-bar-container">
+                                            <div id="gps-accuracy-fill" class="accuracy-bar-fill"></div>
+                                        </div>
+                                        <small id="gps-accuracy-text" class="text-muted" style="font-size: 0.7rem;">Accuracy: --</small>
+                                    </div>
+                                </div>
+                                <div class="geo-row">
+                                    <i class="fa-solid fa-ruler geo-icon"></i>
+                                    <div class="geo-details">
+                                        <h6 class="geo-title">Distance to Office</h6>
+                                        <p class="geo-value" id="gps-distance">--</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Remarks & Punch options -->
+                            <div class="w-100">
+                                <textarea id="punch-remarks" class="form-input-brand mb-3" rows="2" placeholder="Optional remarks/notes..."></textarea>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button id="btn-submit-punch-in" class="btn btn-success w-100 py-3 fw-bold"><i class="fa-solid fa-fingerprint"></i> Punch IN</button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button id="btn-submit-punch-out" class="btn btn-danger w-100 py-3 fw-bold"><i class="fa-solid fa-door-open"></i> Punch OUT</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: History Logs & Calendar -->
+            <div id="view-history" class="employee-view" style="display: none;">
                 <div class="row g-4">
-                    <!-- Control Punch Card -->
-                    <div class="col-md-6">
-                        <div class="card card-portal p-4 bg-white h-100">
-                            <h5 class="fw-bold text-dark border-bottom pb-2"><i class="fa-solid fa-clock-solid"></i> Attendance Operations</h5>
-                            <div class="terminal-status mb-3" id="telemetry-log">
-                                <i class="fa-solid fa-satellite-dish fa-spin"></i> GPS Telemetry Engine Acquiring satellites...
+                    <div class="col-md-5">
+                        <div class="glass-card p-4">
+                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-calendar-alt"></i> Attendance Calendar</h5>
+                            
+                            <!-- Calendar Month/Year Navigator -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="EmployeeApp.changeCalendarMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                                <strong id="calendar-month-year-label" class="text-secondary">--</strong>
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="EmployeeApp.changeCalendarMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
                             </div>
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <button class="btn btn-success w-100 py-3 fw-bold" onclick="triggerPunch('In')"><i class="fa-solid fa-fingerprint"></i> Punch IN</button>
-                                </div>
-                                <div class="col-6">
-                                    <button class="btn btn-danger w-100 py-3 fw-bold" onclick="triggerPunch('Out')"><i class="fa-solid fa-door-open"></i> Punch OUT</button>
-                                </div>
+                            
+                            <div class="calendar-wrapper">
+                                <div class="calendar-header-day">Su</div>
+                                <div class="calendar-header-day">Mo</div>
+                                <div class="calendar-header-day">Tu</div>
+                                <div class="calendar-header-day">We</div>
+                                <div class="calendar-header-day">Th</div>
+                                <div class="calendar-header-day">Fr</div>
+                                <div class="calendar-header-day">Sa</div>
+                            </div>
+                            <div id="history-calendar-grid" class="calendar-wrapper">
+                                <!-- JS Populated -->
+                            </div>
+                            <div class="mt-3 d-flex justify-content-around flex-wrap gap-2 small border-top pt-2">
+                                <div><span class="badge bg-success">P</span> Present</div>
+                                <div><span class="badge bg-warning text-dark">H</span> Half Day</div>
+                                <div><span class="badge bg-danger">A</span> Absent</div>
+                                <div><span class="badge bg-secondary">WO</span> Off</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Metrics Heat Map Summary Visualizer -->
-                    <div class="col-md-6">
-                        <div class="card card-portal p-4 bg-white h-100">
-                            <h5 class="fw-bold text-dark border-bottom pb-2"><i class="fa-solid fa-chart-grid"></i> Attendance Heat Map</h5>
-                            <p class="text-muted small">Presence matrix summary data ledger checklist results statement.</p>
-                            <div class="p-3 bg-light rounded text-center border">
-                                <span class="badge bg-success m-1">P: 22 Days</span>
-                                <span class="badge bg-danger m-1">A: 1 Day</span>
-                                <span class="badge bg-warning text-dark m-1">Late: 2</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Log History Feed -->
-                    <div class="col-12">
-                        <div class="card card-portal p-4 bg-white">
-                            <h5 class="fw-bold text-dark border-bottom pb-2"><i class="fa-solid fa-history"></i> Recent Logged History Logs</h5>
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover align-middle">
+                    <div class="col-md-7">
+                        <div class="glass-card p-4">
+                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-list-check"></i> Clock Ledger</h5>
+                            <div class="table-responsive" style="max-height: 450px;">
+                                <table class="table table-striped align-middle">
                                     <thead>
                                         <tr>
-                                            <th>Date String</th>
-                                            <th>Transaction Route</th>
-                                            <th>Timestamp Logged</th>
-                                            <th>Geofence Proximity Status</th>
+                                            <th>Date</th>
+                                            <th>In</th>
+                                            <th>Out</th>
+                                            <th>Hours</th>
+                                            <th>GPS</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="history-feed-rows">
-                                        <tr><td colspan="4" class="text-center text-muted">No log telemetry synchronized for current session cycle context.</td></tr>
+                                    <tbody id="history-table-body">
+                                        <!-- JS Loaded -->
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
 
+            <!-- View: Leaves -->
+            <div id="view-leave" class="employee-view" style="display: none;">
+                <div class="row g-4">
+                    <div class="col-md-5">
+                        <div class="glass-card p-4">
+                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-file-signature"></i> Apply for WO / Leave</h5>
+                            <form id="form-apply-leave">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">WO / Leave Type</label>
+                                    <select id="leave-type" class="form-input-brand" onchange="EmployeeApp.toggleLeaveAttachmentCheck()">
+                                        <option value="Weekly Off">Weekly Off (WO)</option>
+                                        <option value="Casual">Casual Leave</option>
+                                        <option value="Medical">Medical Leave</option>
+                                        <option value="Emergency">Emergency Leave</option>
+                                    </select>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">Start Date</label>
+                                        <input type="date" id="leave-start-date" class="form-input-brand" onchange="EmployeeApp.toggleLeaveAttachmentCheck()" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">End Date</label>
+                                        <input type="date" id="leave-end-date" class="form-input-brand" onchange="EmployeeApp.toggleLeaveAttachmentCheck()" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Reason Statement</label>
+                                    <textarea id="leave-reason" class="form-input-brand" rows="3" placeholder="Brief explanation..." required></textarea>
+                                </div>
+                                <div class="mb-3" id="consecutive-warning" style="display: none;">
+                                    <div class="alert alert-warning py-2 px-3 small border-0 mb-0">
+                                        <i class="fa-solid fa-triangle-exclamation text-warning me-1"></i>
+                                        <span id="warning-message">Notice: Consecutive off-days check triggered. Supervisor recommendation proof document is required.</span>
+                                    </div>
+                                </div>
+                                <div class="mb-3" id="leave-attachment-container" style="display: none;">
+                                    <label class="form-label small fw-semibold text-danger">Supervisor Recommendation / Proof (Required)</label>
+                                    <input type="file" id="leave-proof" class="form-input-brand" accept="image/*,application/pdf">
+                                </div>
+                                <button type="submit" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-paper-plane"></i> File Application</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="col-md-7">
+                        <div class="glass-card p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold text-brand m-0"><i class="fa-solid fa-receipt"></i> Monthly WO Balance</h5>
+                            </div>
+                            <!-- Balance headers grid -->
+                            <div class="row g-2 mb-4 text-center">
+                                <div class="col-12">
+                                    <div class="p-3 themed-badge-box rounded">
+                                        <div class="small text-muted">Weekly Offs (WO) Taken this Month</div>
+                                        <h3 class="fw-bold mb-0 text-brand"><span id="leave-balance-wo">0</span> / 4 days</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h6 class="fw-bold border-bottom pb-2">Recent Filings</h6>
+                            <div id="leave-history-list" style="max-height: 280px; overflow-y: auto;">
+                                <!-- JS Loaded -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Holidays -->
+            <div id="view-holidays" class="employee-view" style="display: none;">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="glass-card p-4">
+                            <h4 class="fw-bold text-brand mb-4 text-center"><i class="fa-solid fa-calendar-day"></i> Dealership Holiday Schedule</h4>
+                            <div id="holiday-list-container">
+                                <!-- JS Loaded -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Profile -->
+            <div id="view-profile" class="employee-view" style="display: none;">
+                <div class="row g-4">
+                    <div class="col-md-5">
+                        <div class="glass-card p-4">
+                            <div class="text-center mb-4 border-bottom pb-3">
+                                <div class="mx-auto rounded-circle bg-brand flex-center mb-3" style="width: 80px; height: 80px; font-size: 2.2rem;">
+                                    <i class="fa-solid fa-user-tie"></i>
+                                </div>
+                                <h4 class="fw-bold mb-1" id="prof-name">Employee</h4>
+                                <span class="badge bg-secondary" id="prof-id">EMP--</span>
+                            </div>
+                            
+                            <div class="d-flex flex-column gap-3 text-start">
+                                <div class="border-bottom pb-2">
+                                    <small class="text-muted d-block">Assigned Branch</small>
+                                    <strong id="prof-branch">--</strong>
+                                </div>
+                                <div class="border-bottom pb-2">
+                                    <small class="text-muted d-block">Department</small>
+                                    <strong id="prof-department">--</strong>
+                                </div>
+                                <div class="border-bottom pb-2">
+                                    <small class="text-muted d-block">Designation</small>
+                                    <strong id="prof-designation">--</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bank Details Card -->
+                        <div class="glass-card p-4 mt-4">
+                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-building-columns"></i> Bank Account Details</h5>
+                            <div class="d-flex flex-column gap-3 text-start">
+                                <div class="border-bottom pb-2">
+                                    <small class="text-muted d-block">Bank Name</small>
+                                    <strong id="prof-bank-name">--</strong>
+                                </div>
+                                <div class="border-bottom pb-2">
+                                    <small class="text-muted d-block">Account Number</small>
+                                    <strong id="prof-bank-acc">--</strong>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-6 border-end">
+                                        <small class="text-muted d-block">IFSC Code</small>
+                                        <strong id="prof-bank-ifsc">--</strong>
+                                    </div>
+                                    <div class="col-6 ps-2">
+                                        <small class="text-muted d-block">Branch</small>
+                                        <strong id="prof-bank-branch">--</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-7">
+                        <div class="glass-card p-4">
+                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-shield-halved"></i> Change Security Password</h5>
+                            <form id="form-change-password">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Current Access Password</label>
+                                    <input type="password" id="prof-curr-pass" class="form-input-brand" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">New Security Password</label>
+                                    <input type="password" id="prof-new-pass" class="form-input-brand" required>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label small fw-semibold">Confirm New Password</label>
+                                    <input type="password" id="prof-conf-pass" class="form-input-brand" required>
+                                </div>
+                                <button type="submit" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-key"></i> Update Security Credentials</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Manager Approvals -->
+            <div id="view-approvals" class="employee-view" style="display: none;">
+                <div class="row justify-content-center">
+                    <div class="col-md-10">
+                        <div class="glass-card p-4">
+                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-envelope-open-text"></i> Subordinate Pending Weekly Offs</h5>
+                            <div class="table-responsive">
+                                <table class="custom-table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Employee</th>
+                                            <th>Dates</th>
+                                            <th>Duration</th>
+                                            <th>Reason</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="manager-approvals-table-body">
+                                        <!-- JS Loaded -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Bottom Mobile-first Navigation Bar -->
+        <nav class="bottom-nav-bar">
+            <a href="#" class="bottom-nav-link active" data-view="dashboard" onclick="EmployeeApp.switchView('dashboard')">
+                <i class="fa-solid fa-house"></i>
+                <span>Home</span>
+            </a>
+            <a href="#" class="bottom-nav-link" data-view="punch" onclick="EmployeeApp.switchView('punch')">
+                <i class="fa-solid fa-camera"></i>
+                <span>Punch</span>
+            </a>
+            <a href="#" class="bottom-nav-link" data-view="history" onclick="EmployeeApp.switchView('history')">
+                <i class="fa-solid fa-calendar-check"></i>
+                <span>History</span>
+            </a>
+            <a href="#" class="bottom-nav-link" data-view="leave" onclick="EmployeeApp.switchView('leave')">
+                <i class="fa-solid fa-business-time"></i>
+                <span>WO Request</span>
+            </a>
+            <a href="#" class="bottom-nav-link" data-view="approvals" id="nav-manager-approvals" onclick="EmployeeApp.switchView('approvals')" style="display: none;">
+                <i class="fa-solid fa-clipboard-check"></i>
+                <span>Approvals</span>
+            </a>
+            <a href="#" class="bottom-nav-link" data-view="profile" onclick="EmployeeApp.switchView('profile')">
+                <i class="fa-solid fa-user"></i>
+                <span>Profile</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Modal: Missed Punch Correction Request -->
+    <div class="modal fade" id="modal-punch-correction" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card" style="border: 1px solid var(--dark-border); background: var(--dark-panel); color: var(--dark-text);">
+                <div class="modal-header border-bottom border-secondary">
+                    <h5 class="modal-title fw-bold text-brand"><i class="fa-solid fa-clock-rotate-left"></i> Missed Punch Correction</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="form-punch-correction" onsubmit="EmployeeApp.submitCorrectionRequest(event)">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Target Missed Date</label>
+                            <input type="date" id="corr-date" class="form-input-brand" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Correction Type</label>
+                            <select id="corr-type" class="form-input-brand" onchange="EmployeeApp.toggleCorrectionInputs()">
+                                <option value="In Only">Punch In Only</option>
+                                <option value="Out Only">Punch Out Only</option>
+                                <option value="Both">Both In & Out</option>
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6" id="corr-in-wrapper">
+                                <label class="form-label small fw-semibold">Requested Punch-In Time</label>
+                                <input type="time" id="corr-time-in" class="form-input-brand" required>
+                            </div>
+                            <div class="col-6" id="corr-out-wrapper" style="display: none;">
+                                <label class="form-label small fw-semibold">Requested Punch-Out Time</label>
+                                <input type="time" id="corr-time-out" class="form-input-brand">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Reason Statement</label>
+                            <textarea id="corr-reason" class="form-input-brand" rows="3" placeholder="Explain the reason for the missing punch..." required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Supervisor Recommendation / Proof (Optional)</label>
+                            <input type="file" id="corr-attachment" class="form-control bg-dark border-secondary text-white small" accept="image/*,application/pdf">
+                            <small class="text-muted mt-1 d-block" style="font-size: 0.72rem;">Supported formats: images, PDF (Max 2MB)</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top border-secondary">
+                        <button type="button" class="btn btn-secondary py-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-brand-primary py-2"><i class="fa-solid fa-paper-plane"></i> File Request</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <!-- Client-Side Architecture JavaScript Logic Engine -->
+    <!-- SweetAlert2 Dependency -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Core Modules -->
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/employee.js"></script>
+    
+    <!-- Login router gate controller -->
     <script>
-        // CONFIGURATION: Replace with your deployed Google Apps Script Web App URL
-        const WEB_APP_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
-
-        // Bypasses loader overlay on complete UI render
-        document.addEventListener("DOMContentLoaded", function() {
-            setTimeout(() => {
-                document.getElementById("loading-screen").style.display = "none";
-            }, 1200);
+        document.getElementById("form-login-gate").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const user = document.getElementById("login-uid").value;
+            const pass = document.getElementById("login-pass").value;
+            const remember = document.getElementById("login-remember").checked;
             
-            // Acquire GPS Coordinates instantly
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    pos => {
-                        document.getElementById("telemetry-log").innerHTML = `<i class="fa-solid fa-circle-check text-success"></i> GPS Coordinates Locked: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
-                        window.currentLat = pos.coords.latitude;
-                        window.currentLng = pos.coords.longitude;
-                    },
-                    err => {
-                        document.getElementById("telemetry-log").innerHTML = `<i class="fa-solid fa-triangle-exclamation text-warning"></i> GPS Proximity Degraded. Using Default System Loop.`;
-                        window.currentLat = 20.3534;
-                        window.currentLng = 85.8264;
-                    }
-                );
+            const res = await Auth.login(user, pass, remember, "Employee");
+            if (res.success) {
+                if (res.role === "Admin") {
+                    window.location.href = "admin.html";
+                } else {
+                    // Success: hide login and boot employee layout
+                    document.getElementById("view-login").style.display = "none";
+                    document.getElementById("employee-panel-layout").style.display = "block";
+                    EmployeeApp.init();
+                }
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Access Denied",
+                    text: res.message,
+                    confirmButtonColor: "#E4002B"
+                });
             }
         });
 
-        // Form Submit Handler
-        document.getElementById("portalLoginForm").addEventListener("submit", function(e) {
-            e.preventDefault();
-            document.getElementById("loading-screen").style.display = "flex";
-            document.getElementById("loading-text").innerText = "Syncing authentication loops...";
-
-            const payload = {
-                action: "employeeLogin",
-                username: document.getElementById("username").value,
-                password: document.getElementById("password").value
-            };
-
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                mode: "cors",
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(result => {
-                document.getElementById("loading-screen").style.display = "none";
-                if (result.status === "Success") {
-    if (result.role === "Admin") {
-        alert("Administrative Account Verified. Routing to Control Terminal.");
-        
-        // FIX: Pass the login tokens directly inside the web link URL parameters
-        window.location.href = "admin.html?auth=true&role=Admin&user=" + encodeURIComponent(result.username);  // Open Admin Console directly
-                    } else {
-                        // Standard Employee Session Routine
-                        alert(`Welcome back, ${result.employeeName}`);
-                        localStorage.setItem("emp_id", result.employeeId);
-                        localStorage.setItem("emp_name", result.employeeName);
-                        localStorage.setItem("emp_branch", result.branch);
-                        localStorage.setItem("emp_dept", result.department);
-                        
-                        document.getElementById("login-panel").style.display = "none";
-                        document.getElementById("dashboard-panel").style.display = "block";
-                        loadUserHistory(result.employeeId);
-                    }
-                } else {
-                    alert("Error Handshake: " + result.message);
+        // Autoload remembered inputs or bypass login if active session exists
+        document.addEventListener("DOMContentLoaded", () => {
+            if (localStorage.getItem("EAMS_remembered_user")) {
+                document.getElementById("login-uid").value = localStorage.getItem("EAMS_remembered_user");
+                document.getElementById("login-remember").checked = true;
+            }
+            
+            if (Auth.isLoggedIn()) {
+                if (Auth.getRole() === "Admin") {
+                    window.location.href = "admin.html";
+                } else if (Auth.getRole() === "Employee") {
+                    document.getElementById("view-login").style.display = "none";
+                    document.getElementById("employee-panel-layout").style.display = "block";
+                    EmployeeApp.init();
                 }
-            })
-            .catch(err => {
-                document.getElementById("loading-screen").style.display = "none";
-                alert("Critical System Connection Failure: " + err);
-            });
+            }
         });
 
-        function triggerPunch(type) {
-            document.getElementById("loading-screen").style.display = "flex";
-            document.getElementById("loading-text").innerText = `Registering Biometric Punch ${type}...`;
+        // Screen-capture security interceptor keys listener
+        document.addEventListener("keyup", (e) => {
+            if (e.key === "PrintScreen") {
+                navigator.clipboard.writeText("");
+                Swal.fire({
+                    icon: "warning",
+                    title: "Security Notice",
+                    text: "Screenshots are restricted on this portal for data privacy compliance.",
+                    confirmButtonColor: "#E4002B"
+                });
+            }
+        });
+        
+        document.addEventListener("keydown", (e) => {
+            // Block Ctrl+P (Print), Ctrl+S (Save Page), and Ctrl+C (Copy)
+            if ((e.ctrlKey && e.key === 'p') || (e.ctrlKey && e.key === 's') || (e.ctrlKey && e.key === 'c')) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: "warning",
+                    title: "Action Restricted",
+                    text: "Exporting or copy-pasting data from this portal is blocked.",
+                    confirmButtonColor: "#E4002B"
+                });
+            }
+        });
 
-            const packet = {
-                action: "executePunchTransaction",
-                employeeId: localStorage.getItem("emp_id"),
-                employeeName: localStorage.getItem("emp_name"),
-                branch: localStorage.getItem("emp_branch"),
-                department: localStorage.getItem("emp_dept"),
-                punchType: type,
-                lat: window.currentLat || 20.3534,
-                lng: window.currentLng || 85.8264,
-                base64ImageBlob: "MOCK_SELFIE_BASE64_BLOB_STRING",
-                remarks: "Portal Transaction Log"
-            };
-
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                body: JSON.stringify(packet)
-            })
-            .then(res => res.json())
-            .then(res => {
-                document.getElementById("loading-screen").style.display = "none";
-                alert(res.message);
-                loadUserHistory(localStorage.getItem("emp_id"));
-            });
-        }
-
-        function loadUserHistory(id) {
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "fetchHistory", employeeId: id })
-            })
-            .then(res => res.json())
-            .then(res => {
-                if (res.status === "Success" && res.data.length > 0) {
-                    let html = "";
-                    res.data.forEach(row => {
-                        html += `<tr>
-                            <td><b class="text-dark">${row.date}</b></td>
-                            <td><span class="badge ${row.type==='In'?'bg-success':'bg-danger'}">${row.type}</span></td>
-                            <td>${row.time}</td>
-                            <td><span class="text-secondary small"><i class="fa-solid fa-location-dot"></i> ${row.status}</span></td>
-                        </tr>`;
-                    });
-                    document.getElementById("history-feed-rows").innerHTML = html;
-                }
+        // Register Service Worker for PWA compliance with auto-update listener
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => {
+                        console.log('EAMS Service Worker Registered!', reg.scope);
+                        reg.onupdatefound = () => {
+                            const installingWorker = reg.installing;
+                            if (installingWorker) {
+                                installingWorker.onstatechange = () => {
+                                    if (installingWorker.state === 'installed') {
+                                        if (navigator.serviceWorker.controller) {
+                                            console.log('New service worker update detected. Reloading page...');
+                                            window.location.reload();
+                                        }
+                                    }
+                                };
+                            }
+                        };
+                    })
+                    .catch(err => console.error('Service Worker registration failed:', err));
             });
         }
     </script>
