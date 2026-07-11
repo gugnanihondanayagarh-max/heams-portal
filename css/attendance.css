@@ -1,0 +1,211 @@
+/* Attendance capture UI panel: camera, geo-tracking and feedback overlays */
+
+.punch-frame {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Video/Camera Viewport Frame */
+.camera-viewport-container {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    aspect-ratio: 4/3;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: #000000;
+    box-shadow: var(--shadow-lg);
+    border: 3px solid var(--light-border);
+    transition: var(--transition);
+}
+
+body.dark-mode .camera-viewport-container {
+    border-color: var(--dark-border);
+}
+
+.camera-stream-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); /* Mirror view for front selfie */
+}
+
+.captured-image-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+    transform: scaleX(-1); /* Keep mirror view for consistency */
+}
+
+/* Camera overlays */
+.camera-overlay-mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    box-sizing: border-box;
+    border: 15px solid rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.camera-guide-ellipse {
+    width: 75%;
+    height: 80%;
+    border: 2px dashed rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
+}
+
+.camera-actions-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    max-width: 380px;
+}
+
+.camera-action-btn {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.camera-btn-capture {
+    background: var(--brand-color);
+    color: #FFFFFF;
+    border: none;
+}
+
+.camera-btn-capture:hover {
+    background: var(--brand-color-hover);
+}
+
+.camera-btn-retake {
+    background: rgba(0, 0, 0, 0.6);
+    color: #FFFFFF;
+    border: none;
+    backdrop-filter: blur(5px);
+}
+
+.camera-btn-retake:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* Geolocation Telemetry widgets */
+.geo-telemetry-panel {
+    width: 100%;
+    max-width: 380px;
+    background: var(--light-bg);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    border: 1px solid var(--light-border);
+    transition: var(--transition);
+}
+
+body.dark-mode .geo-telemetry-panel {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: var(--dark-border);
+}
+
+.geo-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.geo-row:last-child {
+    margin-bottom: 0;
+}
+
+.geo-icon {
+    font-size: 1.1rem;
+    color: var(--brand-color);
+    width: 24px;
+    text-align: center;
+}
+
+.geo-details {
+    flex: 1;
+}
+
+.geo-title {
+    font-size: 0.75rem;
+    color: var(--light-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin: 0;
+}
+
+body.dark-mode .geo-title {
+    color: var(--dark-muted);
+}
+
+.geo-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--light-text);
+    margin: 0;
+}
+
+body.dark-mode .geo-value {
+    color: var(--dark-text);
+}
+
+/* Geofence Status Colors */
+.geo-status-indicator {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.geo-status-indicator.inside {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+}
+
+.geo-status-indicator.outside {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+}
+
+.geo-status-indicator.pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+}
+
+/* Accuracy Bar */
+.accuracy-bar-container {
+    height: 6px;
+    background: rgba(128,128,128,0.2);
+    border-radius: 3px;
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+.accuracy-bar-fill {
+    height: 100%;
+    background: var(--success);
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+.accuracy-bar-fill.poor { background: var(--danger); }
+.accuracy-bar-fill.medium { background: var(--warning); }
+.accuracy-bar-fill.good { background: var(--success); }
