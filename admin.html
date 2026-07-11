@@ -3,247 +3,1051 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HONDA HEAMS Admin Terminal</title>
+    <title>EAMS - Admin Terminal</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --honda-red: #E4002B;
-            --dark-gray: #111111;
-            --panel-gray: #1E1E1E;
-        }
-        body {
-            background-color: #121212;
-            color: #E0E0E0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .admin-header {
-            background-color: var(--dark-gray);
-            border-bottom: 3px solid var(--honda-red);
-            padding: 15px 0;
-        }
-        .metric-card {
-            background-color: var(--panel-gray);
-            border: none;
-            border-left: 4px solid var(--honda-red);
-            border-radius: 6px;
-        }
-        .control-box {
-            background-color: var(--panel-gray);
-            border-radius: 8px;
-            padding: 20px;
-        }
-        .btn-honda {
-            background-color: var(--honda-red);
-            color: white;
-            border: none;
-        }
-        .btn-honda:hover {
-            background-color: #b30021;
-            color: white;
-        }
-        .table-dark-custom {
-            background-color: var(--panel-gray);
-            color: white;
-        }
-        #admin-login-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #121212;
-            z-index: 10000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-    </style>
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js Dependency -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Style Modules -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
 
-    <!-- Manual Fallback Admin Login Overlay (Hidden Automatically if session token is valid) -->
-    <div id="admin-login-overlay" style="display: none;">
-        <div class="control-box text-center" style="width: 380px;">
-            <h4 class="fw-bold text-white mb-2"><i class="fa-solid fa-lock text-danger"></i> Admin Console Login</h4>
-            <p class="text-muted small">Session missing. Re-verify credentials loop.</p>
-            <input type="text" id="alt-username" class="form-control mb-2 bg-dark text-white border-secondary" placeholder="Admin Username">
-            <input type="password" id="alt-password" class="form-control mb-3 bg-dark text-white border-secondary" placeholder="Admin Password">
-            <button class="btn btn-honda w-100" onclick="handleManualAdminLogin()">Unlock Terminal Dashboard</button>
-        </div>
-    </div>
-
-    <!-- Header Terminal Banner -->
-    <header class="admin-header">
-        <div class="container d-flex justify-content-between align-items-center">
-            <h4 class="m-0 text-white fw-bold"><i class="fa-solid fa-shield-halved text-danger"></i> HONDA HEAMS <span>Admin Terminal</span></h4>
-            <button class="btn btn-sm btn-outline-light" onclick="executeAdminSessionLogout()"><i class="fa-solid fa-power-off text-danger"></i> Secure Logout</button>
-        </div>
-    </header>
-
-    <!-- Main Dashboard Framework Container -->
-    <div class="container my-5" id="admin-main-panel" style="display: none;">
-        
-        <!-- Live Analytics Metric Counters Grid Rows -->
-        <div class="row g-3 mb-5">
-            <div class="col-md-3">
-                <div class="card metric-card p-3">
-                    <small class="text-muted uppercase fw-bold">Roster Employees</small>
-                    <h2 class="fw-bold text-white m-0" id="metric-staff">0</h2>
-                </div>
+    <!-- Dynamic Admin Login Overlay -->
+    <div id="view-admin-login" class="container-fluid flex-center min-vh-100" style="background: linear-gradient(135deg, #111111 0%, #17171e 100%);">
+        <div class="glass-card p-4 mx-auto w-100 animated-fade-in-up" style="max-width: 400px; background: rgba(26, 26, 32, 0.85); border-color: rgba(255,255,255,0.06); color: #FFFFFF;">
+            <div class="text-center mb-4">
+                <svg viewBox="0 0 512 512" class="mb-2" style="width: 3.5rem; height: 3.5rem;" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h211c-13.8-19.1-22-42.5-22-68 0-61.9 50.1-112 112-112 25.5 0 48.9 8.2 68 22V422.4c0-74.2-60.2-134.4-134.4-134.4z"/><circle cx="400" cy="400" r="112" fill="#4caf50"/><path d="M340 400 l40 40 l80 -80" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                <h3 class="fw-bold mb-1">EAMS <span>Admin</span></h3>
+                <small class="text-muted uppercase">Administrative Terminal Login</small>
             </div>
-            <div class="col-md-3">
-                <div class="card metric-card p-3">
-                    <small class="text-muted uppercase fw-bold">Active Geofences</small>
-                    <h2 class="fw-bold text-white m-0" id="metric-branches">0</h2>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card metric-card p-3">
-                    <small class="text-muted uppercase fw-bold">Punches Logged Today</small>
-                    <h2 class="fw-bold text-success m-0" id="metric-present">0</h2>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card metric-card p-3">
-                    <small class="text-muted uppercase fw-bold">GPS Fault Alerts</small>
-                    <h2 class="fw-bold text-danger m-0" id="metric-mismatch">0</h2>
-                </div>
-            </div>
-        </div>
-
-        <!-- Database Controls & Ledger Configuration Panels -->
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="control-box h-100">
-                    <h5 class="fw-bold text-white border-bottom pb-2 mb-3"><i class="fa-solid fa-sliders text-danger"></i> Database Controls</h5>
-                    <button class="btn btn-dark text-start w-100 mb-2 border-secondary" onclick="loadLedgerData('Credentials')"><i class="fa-solid fa-users"></i> Query Employee Records</button>
-                    <button class="btn btn-dark text-start w-100 mb-2 border-secondary" onclick="loadLedgerData('Branches')"><i class="fa-solid fa-building-flag"></i> Query Geofence Branches</button>
-                    <button class="btn btn-dark text-start w-100 mb-4 border-secondary" onclick="loadLedgerData('Attendance')"><i class="fa-solid fa-list-check"></i> Query Attendance Transaction Ledger</button>
-                    
-                    <h5 class="fw-bold text-white border-bottom pb-2 mb-3"><i class="fa-solid fa-plus text-success"></i> Insert Row Entry Record</h5>
-                    <button class="btn btn-honda w-100 py-2" onclick="alert('Opening Dynamic Record Creation Wizard...')"><i class="fa-solid fa-database"></i> Open Mutation Wizard</button>
-                </div>
-            </div>
-
-            <div class="col-md-8">
-                <div class="control-box h-100">
-                    <h5 class="fw-bold text-white border-bottom pb-2 mb-3" id="ledger-title"><i class="fa-solid fa-chart-line text-danger"></i> Dealership Attendance Analytics</h5>
-                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                        <table class="table table-dark table-striped align-middle table-hover border-secondary" id="ledger-data-table">
-                            <thead id="ledger-headers">
-                                <tr><th class="text-muted">Select a database matrix control path loop to stream active sheet rows.</th></tr>
-                            </thead>
-                            <tbody id="ledger-rows">
-                                <tr><td class="text-center text-muted py-4">Database Ledger Standby Engine Status: Online</td></tr>
-                            </tbody>
-                        </table>
+            
+            <form id="form-admin-login">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted">Admin Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-secondary text-muted"><i class="fa-solid fa-user-shield"></i></span>
+                        <input type="text" id="admin-uid" class="form-control bg-white border-secondary text-dark" placeholder="Username ID" required>
                     </div>
                 </div>
-            </div>
+                <div class="mb-4">
+                    <label class="form-label small fw-semibold text-muted">Access Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-secondary text-muted"><i class="fa-solid fa-lock"></i></span>
+                        <input type="password" id="admin-pass" class="form-control bg-white border-secondary text-dark" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-lock-open"></i> Unlock Dashboard</button>
+            </form>
         </div>
-
     </div>
 
+    <!-- Admin Panel Full Wrapper Layout -->
+    <div id="admin-panel-layout" class="admin-wrapper" style="display: none;">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <svg viewBox="0 0 512 512" style="width: 2rem; height: 2rem; margin-right: 10px;" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h211c-13.8-19.1-22-42.5-22-68 0-61.9 50.1-112 112-112 25.5 0 48.9 8.2 68 22V422.4c0-74.2-60.2-134.4-134.4-134.4z"/><circle cx="400" cy="400" r="112" fill="#4caf50"/><path d="M340 400 l40 40 l80 -80" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                <h4 class="brand-title m-0 text-white">EAMS <span>Admin</span></h4>
+            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="#" class="sidebar-link active" data-tab="dashboard">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="matrix-dashboard">
+                        <i class="fa-solid fa-calendar-days"></i>
+                        <span>Attendance Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="employees">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Employees</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="attendance">
+                        <i class="fa-solid fa-clipboard-user"></i>
+                        <span>Attendance Ledger</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="branches">
+                        <i class="fa-solid fa-building-circle-check"></i>
+                        <span>Branch settings</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="leave">
+                        <i class="fa-solid fa-envelope-open-text"></i>
+                        <span>Leave Requests</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="corrections">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Correction Requests</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="holiday">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        <span>Holidays planner</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="reports">
+                        <i class="fa-solid fa-file-invoice"></i>
+                        <span>Reports Terminal</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="settings">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>System Settings</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="#" class="sidebar-link" data-tab="profile">
+                    <i class="fa-solid fa-user-cog"></i>
+                    <span>Profile</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="admin-main-panel">
+            <!-- Header Bar -->
+            <header class="admin-header-nav">
+                <div class="d-flex align-items-center gap-3">
+                    <button id="sidebar-toggle-btn" class="sidebar-toggler-btn"><i class="fa-solid fa-bars"></i></button>
+                    <h5 class="fw-bold m-0" id="admin-panel-title">Console Terminal</h5>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <button id="theme-toggle-admin" class="theme-toggle-btn"><i class="fa-solid fa-moon"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="Auth.logout()"><i class="fa-solid fa-power-off"></i> Lock Terminal</button>
+                </div>
+            </header>
+
+            <!-- Dynamic Content Bodies -->
+            <main class="admin-content-body">
+                
+                <!-- Tab: Dashboard -->
+                <div id="view-dashboard" class="admin-tab-view" style="display: none;">
+                    <div class="metric-grid">
+                        <div class="metric-card-custom present">
+                            <div class="metric-icon-wrapper"><i class="fa-solid fa-users"></i></div>
+                            <div class="metric-info">
+                                <h6 class="metric-label">Roster Employees</h6>
+                                <h3 class="metric-val" id="metrics-staff">0</h3>
+                            </div>
+                        </div>
+                        <div class="metric-card-custom leave">
+                            <div class="metric-icon-wrapper"><i class="fa-solid fa-map-marked-alt"></i></div>
+                            <div class="metric-info">
+                                <h6 class="metric-label">Active Branches</h6>
+                                <h3 class="metric-val" id="metrics-branches">0</h3>
+                            </div>
+                        </div>
+                        <div class="metric-card-custom present">
+                            <div class="metric-icon-wrapper"><i class="fa-solid fa-user-check"></i></div>
+                            <div class="metric-info">
+                                <h6 class="metric-label">Presents Today</h6>
+                                <h3 class="metric-val" id="metrics-present">0</h3>
+                            </div>
+                        </div>
+                        <div class="metric-card-custom absent">
+                            <div class="metric-icon-wrapper"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="metric-info">
+                                <h6 class="metric-label">GPS Fault Alerts</h6>
+                                <h3 class="metric-val" id="metrics-mismatches">0</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="row g-4">
+                        <div class="col-lg-7">
+                            <div class="glass-card chart-panel-card" style="height: 380px;">
+                                <div class="chart-title-header">
+                                    <h5><i class="fa-solid fa-chart-line text-brand"></i> Attendance Trend Line</h5>
+                                </div>
+                                <div style="height: 280px; position: relative;">
+                                    <canvas id="chart-attendance-trend"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="glass-card chart-panel-card" style="height: 380px;">
+                                <div class="chart-title-header">
+                                    <h5><i class="fa-solid fa-chart-bar text-brand"></i> Branch Breakdown</h5>
+                                </div>
+                                <div style="height: 280px; position: relative;">
+                                    <canvas id="chart-branch-attendance"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Attendance Dashboard (Monthly Matrix & Audits) -->
+                <div id="view-matrix-dashboard" class="admin-tab-view" style="display: none;">
+                    
+                    <!-- Sub-view 1: Matrix Grid -->
+                    <div id="matrix-grid-subview">
+                        <div class="glass-card p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold text-brand m-0"><i class="fa-solid fa-calendar-days"></i> Monthly Registry Grid (Matrix)</h5>
+                                <div class="d-flex gap-2">
+                                    <input type="month" id="dashboard-matrix-month" class="form-input-brand py-1" style="width: auto;">
+                                    <button class="btn btn-sm btn-brand-primary px-3" onclick="AdminApp.loadDashboardMatrix()"><i class="fa-solid fa-arrows-rotate"></i> Reload</button>
+                                </div>
+                            </div>
+                            <div class="table-responsive" style="max-height: calc(100vh - 260px); overflow: auto;">
+                                <table class="custom-table table-sm" id="dashboard-matrix-table" style="min-width: max-content;">
+                                    <thead id="dashboard-matrix-headers" style="position: sticky; top: 0; z-index: 2;">
+                                        <!-- JS Loaded -->
+                                    </thead>
+                                    <tbody id="dashboard-matrix-rows">
+                                        <!-- JS Loaded -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-view 2: Employee Full Month Audit Details -->
+                    <div id="matrix-emp-detail-subview" style="display: none;">
+                        <div class="glass-card p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                <h5 class="fw-bold text-brand m-0"><i class="fa-solid fa-address-card"></i> Employee Monthly Log Roster</h5>
+                                <button class="btn btn-sm btn-brand-secondary" onclick="AdminApp.showMatrixGridHome()"><i class="fa-solid fa-arrow-left"></i> Back to Registry</button>
+                            </div>
+                            <div class="card p-3 mb-3 border-0 shadow-sm">
+                                <div class="row g-2 text-start">
+                                    <div class="col-sm-4">
+                                        <small class="text-muted d-block">Employee ID & Name</small>
+                                        <strong id="audit-emp-name-id">--</strong>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <small class="text-muted d-block">Roster Branch</small>
+                                        <strong id="audit-emp-branch">--</strong>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <small class="text-muted d-block">Department & Designation</small>
+                                        <strong id="audit-emp-dept-desig">--</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="custom-table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Clock In</th>
+                                            <th>Clock Out</th>
+                                            <th>Hours</th>
+                                            <th>Remarks & Geofence Alerts</th>
+                                            <th>Quick Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="audit-emp-rows">
+                                        <!-- JS Loaded -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-view 3: Day Punch Audit Verification -->
+                    <div id="matrix-punch-detail-subview" style="display: none;">
+                        <div class="glass-card p-4">
+                            <!-- Header -->
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="fw-bold text-brand m-0"><i class="fa-solid fa-user-shield"></i> Day Punch Audit Verification</h5>
+                                <button class="btn btn-sm btn-brand-secondary" onclick="AdminApp.backFromPunchAudit()"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                            </div>
+
+                            <!-- Employee & Date header -->
+                            <div class="text-center mb-4">
+                                <h4 class="fw-bold text-brand mb-1" id="day-audit-emp-name">--</h4>
+                                <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                                    <span class="badge bg-secondary px-3 py-2" id="day-audit-date">--</span>
+                                    <span class="badge fs-6 px-3 py-2" id="day-audit-status">--</span>
+                                </div>
+                            </div>
+
+                            <!-- Key stats bar -->
+                            <div class="row g-3 mb-4 text-center">
+                                <div class="col-4">
+                                    <div class="glass-card p-3">
+                                        <div class="text-muted small">Clock In</div>
+                                        <div class="fw-bold fs-5 text-success" id="day-audit-in-time">--</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="glass-card p-3">
+                                        <div class="text-muted small">Clock Out</div>
+                                        <div class="fw-bold fs-5 text-brand" id="day-audit-out-time">--</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="glass-card p-3">
+                                        <div class="text-muted small">Working Hours</div>
+                                        <div class="fw-bold fs-5 text-info" id="day-audit-working-hours">--</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Verification & Actions Row -->
+                            <div class="row g-4 mb-4">
+                                <!-- Left side: Dual Selfie -->
+                                <div class="col-md-7">
+                                    <div class="row g-3 h-100">
+                                        <!-- Punch IN -->
+                                        <div class="col-sm-6">
+                                            <div class="glass-card p-3 h-100">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="fw-bold text-success m-0"><i class="fa-solid fa-arrow-right-to-bracket"></i> IN</h6>
+                                                    <a id="day-audit-map-in" href="#" target="_blank" class="btn btn-sm btn-outline-success d-none py-0 px-1">
+                                                        <i class="fa-solid fa-location-dot"></i> Map
+                                                    </a>
+                                                </div>
+                                                <div class="rounded overflow-hidden border mb-2" style="height: 180px; background: #1a1a2e;" id="day-audit-selfie-in">
+                                                    <div class="d-flex align-items-center justify-content-center h-100 text-muted flex-column">
+                                                        <i class="fa-solid fa-image-portrait fa-2x mb-2 opacity-50"></i>
+                                                        <span class="small">No In Selfie</span>
+                                                    </div>
+                                                </div>
+                                                <div class="small text-muted" style="font-size: 0.75rem;">
+                                                    <i class="fa-solid fa-location-crosshairs text-success"></i>
+                                                    <span id="day-audit-dist-in">Distance: --</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Punch OUT -->
+                                        <div class="col-sm-6">
+                                            <div class="glass-card p-3 h-100">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="fw-bold text-brand m-0"><i class="fa-solid fa-arrow-right-from-bracket"></i> OUT</h6>
+                                                    <a id="day-audit-map-out" href="#" target="_blank" class="btn btn-sm btn-outline-danger d-none py-0 px-1">
+                                                        <i class="fa-solid fa-location-dot"></i> Map
+                                                    </a>
+                                                </div>
+                                                <div class="rounded overflow-hidden border mb-2" style="height: 180px; background: #1a1a2e;" id="day-audit-selfie-out">
+                                                    <div class="d-flex align-items-center justify-content-center h-100 text-muted flex-column">
+                                                        <i class="fa-solid fa-image-portrait fa-2x mb-2 opacity-50"></i>
+                                                        <span class="small">No Out Selfie</span>
+                                                    </div>
+                                                </div>
+                                                <div class="small text-muted" style="font-size: 0.75rem;">
+                                                    <i class="fa-solid fa-location-crosshairs text-brand"></i>
+                                                    <span id="day-audit-dist-out">Distance: --</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right side: Remarks + Actions -->
+                                <div class="col-md-5">
+                                    <div class="d-flex flex-column h-100 gap-3">
+                                        <!-- Remarks / Audit Trail -->
+                                        <div class="glass-card p-3 flex-grow-1">
+                                            <div class="text-muted small mb-2"><i class="fa-solid fa-triangle-exclamation"></i> Remarks / Audit Trail:</div>
+                                            <div id="day-audit-remarks" class="fw-semibold">--</div>
+                                        </div>
+
+                                        <!-- Admin Actions (Status Override) -->
+                                        <div class="glass-card p-3 border border-warning border-opacity-50">
+                                            <h6 class="fw-bold text-warning mb-3"><i class="fa-solid fa-user-pen"></i> Override Status</h6>
+                                            <div class="d-flex flex-column gap-2">
+                                                <label class="col-form-label text-muted small pb-0">New Status:</label>
+                                                <select class="form-select bg-dark text-white border-secondary w-100" id="day-audit-status-edit">
+                                                    <option value="Present">Present</option>
+                                                    <option value="Absent">Absent</option>
+                                                    <option value="Half Day">Half Day</option>
+                                                    <option value="Late">Late</option>
+                                                    <option value="Manual Punch">Manual Punch</option>
+                                                    <option value="Weekly Off">Weekly Off</option>
+                                                </select>
+                                                <button class="btn btn-warning w-100 mt-2" onclick="AdminApp.updateAuditStatus()" id="btn-audit-update"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Tab: Employees -->
+                <div id="view-employees" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <div class="table-header-toolbar">
+                            <div class="search-input-wrapper">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="emp-search" class="form-input-brand" placeholder="Search employee by ID/name...">
+                            </div>
+                            <button id="btn-add-employee" class="btn btn-brand-primary"><i class="fa-solid fa-user-plus"></i> Add Employee</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee ID</th>
+                                        <th>Name</th>
+                                        <th>Branch</th>
+                                        <th>Department</th>
+                                        <th>Designation</th>
+                                        <th>Reporting Manager</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employee-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Attendance Logs -->
+                <div id="view-attendance" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <div class="table-header-toolbar">
+                            <h5 class="fw-bold m-0"><i class="fa-solid fa-list-check text-brand"></i> Punch logs registry</h5>
+                            <button class="btn btn-brand-secondary btn-sm" onclick="AdminApp.loadAttendanceLedger()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+                        </div>
+                        
+                        <!-- Multi-filter bar -->
+                        <div class="row g-2 mb-3 p-3 rounded" style="background: rgba(128,128,128,0.04); border: 1px solid var(--light-border);">
+                            <div class="col-md-3 col-sm-12">
+                                <label class="form-label small fw-semibold mb-1">Search Employee</label>
+                                <input type="text" id="filter-att-emp" class="form-input-brand py-1 px-2 small" placeholder="ID or Name..." oninput="AdminApp.filterAttendanceTable()">
+                            </div>
+                            <div class="col-md-2 col-sm-6">
+                                <label class="form-label small fw-semibold mb-1">Start Date</label>
+                                <input type="date" id="filter-att-start" class="form-input-brand py-1 px-2 small" onchange="AdminApp.filterAttendanceTable()">
+                            </div>
+                            <div class="col-md-2 col-sm-6">
+                                <label class="form-label small fw-semibold mb-1">End Date</label>
+                                <input type="date" id="filter-att-end" class="form-input-brand py-1 px-2 small" onchange="AdminApp.filterAttendanceTable()">
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label small fw-semibold mb-1">Status</label>
+                                <select id="filter-att-status" class="form-input-brand py-1 px-2 small" onchange="AdminApp.filterAttendanceTable()">
+                                    <option value="">All Statuses</option>
+                                    <option value="Present">Present</option>
+                                    <option value="Location Mismatch">Location Mismatch</option>
+                                    <option value="Absent">Absent / Incomplete</option>
+                                    <option value="In Progress">In Progress</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 col-sm-6 d-flex align-items-end">
+                                <button class="btn btn-brand-secondary btn-sm w-100 py-1" onclick="AdminApp.resetAttendanceFilters()"><i class="fa-solid fa-filter-circle-xmark"></i> Clear</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee ID</th>
+                                        <th>Date</th>
+                                        <th>Punch In</th>
+                                        <th>Punch Out</th>
+                                        <th>GPS In</th>
+                                        <th>GPS Out</th>
+                                        <th>Selfie In</th>
+                                        <th>Selfie Out</th>
+                                        <th>Proximity Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendance-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Branch Settings -->
+                <div id="view-branches" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <div class="table-header-toolbar">
+                            <div class="search-input-wrapper">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="branch-search" class="form-input-brand" placeholder="Search branch...">
+                            </div>
+                            <button id="btn-add-branch" class="btn btn-brand-primary"><i class="fa-solid fa-plus"></i> Add Branch Config</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Branch ID</th>
+                                        <th>Branch Name</th>
+                                        <th>Address</th>
+                                        <th>Coordinates (Lat/Lng)</th>
+                                        <th>Radius</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="branch-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Leave Requests Review -->
+                <div id="view-leave" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-envelope-open-text text-brand"></i> Pending Leave Applications</h5>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee ID</th>
+                                        <th>Name</th>
+                                        <th>Category</th>
+                                        <th>Dates</th>
+                                        <th>Days</th>
+                                        <th>Reason</th>
+                                        <th>Proof Doc</th>
+                                        <th>Review Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leave-requests-table-body">
+                                    <!-- JS Loaded -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Holiday Settings -->
+                <div id="view-holiday" class="admin-tab-view" style="display: none;">
+                    <div class="row g-4">
+                        <div class="col-md-5">
+                            <div class="glass-card p-4">
+                                <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-calendar-plus text-brand"></i> Add Holiday Config</h5>
+                                <form id="form-add-holiday">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold">Holiday Title</label>
+                                        <input type="text" id="holiday-name" class="form-input-brand" placeholder="e.g. Independence Day" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold">Calendar Date</label>
+                                        <input type="date" id="holiday-date" class="form-input-brand" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="form-label small fw-semibold">Holiday Category</label>
+                                        <select id="holiday-type" class="form-input-brand">
+                                            <option value="National">National Holiday</option>
+                                            <option value="Festival">Festival Holiday</option>
+                                            <option value="State">State Holiday</option>
+                                            <option value="Custom">Custom Holiday</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-save"></i> Save Holiday</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="col-md-7">
+                            <div class="table-custom-card h-100">
+                                <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-list-ul text-brand"></i> Configured Holiday events</h5>
+                                <div class="table-responsive">
+                                    <table class="custom-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Date</th>
+                                                <th>Holiday Title</th>
+                                                <th>Category</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="holidays-table-body">
+                                            <!-- JS Loaded -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Correction Requests -->
+                <div id="view-corrections" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-clock-rotate-left text-brand"></i> Missed Punch Correction Requests</h5>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Request ID</th>
+                                        <th>Employee ID</th>
+                                        <th>Name</th>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Req In</th>
+                                        <th>Req Out</th>
+                                        <th>Reason</th>
+                                        <th>Attachment</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corrections-table-body">
+                                    <tr><td colspan="11" class="text-center py-4 text-muted">No pending missed punch requests.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Reports Terminal -->
+                <div id="view-reports" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-file-invoice text-brand"></i> Reports Generator Engine</h5>
+                        <div class="row g-3 align-items-end mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Report Query Category</label>
+                                <select id="report-select-type" class="form-input-brand">
+                                    <option value="Daily">Daily Summary Logs</option>
+                                    <option value="Monthly">Monthly Counts Summary</option>
+                                    <option value="Matrix">Monthly Registry Grid (Matrix)</option>
+                                    <option value="Comprehensive">Comprehensive Monthly Log (Multi-Row)</option>
+                                    <option value="Late">Late Clock-In list</option>
+                                    <option value="GPSMismatch">GPS Geofence Mismatch list</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Target Date</label>
+                                <input type="date" id="report-select-date" class="form-input-brand">
+                            </div>
+                            <div class="col-md-4">
+                                <button id="btn-generate-report" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-gears"></i> Compile Report</button>
+                            </div>
+                        </div>
+
+                        <!-- Report compile output -->
+                        <div class="border-top pt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0">Compiled Report Result</h6>
+                                <div class="d-flex gap-2">
+                                    <button id="btn-print-report" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-print"></i> Print</button>
+                                    <button id="btn-csv-report" class="btn btn-sm btn-outline-success"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+                                </div>
+                            </div>
+                            <div class="table-responsive" style="max-height: 400px;">
+                                <table id="report-results-table" class="custom-table border">
+                                    <thead id="report-table-headers">
+                                        <tr><th>Headers</th></tr>
+                                    </thead>
+                                    <tbody id="report-table-rows">
+                                        <tr><td class="text-center py-4 text-muted">Generate parameters above to stream data grids.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: System Settings -->
+                <div id="view-settings" class="admin-tab-view" style="display: none;">
+                    <div class="glass-card p-4" style="max-width: 600px;">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-gears text-brand"></i> Gateway Integration Parameters</h5>
+                        
+                        <form id="form-settings-gateway" class="mb-4">
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Google Apps Script Web App Deployment URL</label>
+                                <input type="url" id="settings-webapp-url" class="form-input-brand" placeholder="https://script.google.com/macros/s/.../exec" required>
+                                <div class="form-text text-muted">Configure this to bind your client-side framework page directly to the Google Sheets backend.</div>
+                            </div>
+                            <button type="submit" class="btn btn-brand-primary"><i class="fa-solid fa-circle-check"></i> Save Parameters</button>
+                        </form>
+                    </div>
+
+                    <!-- Data Maintenance Purging Card -->
+                    <div class="glass-card p-4 mt-4" style="max-width: 600px;">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-trash-can text-danger"></i> Database Logs Purging Manager</h5>
+                        <div class="alert alert-warning small mb-3">
+                            <i class="fa-solid fa-triangle-exclamation text-danger me-1"></i> <strong>Caution:</strong> Deleting historical logs is permanent and cannot be undone. Make sure to back up your Google Spreadsheet before executing a purge.
+                        </div>
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold">Purge logs older than</label>
+                                <select id="purge-months-select" class="form-input-brand">
+                                    <option value="3">3 Months (Recommended)</option>
+                                    <option value="6">6 Months</option>
+                                    <option value="12">12 Months (1 Year)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <button id="btn-purge-database" class="btn btn-brand-primary w-100 py-2 bg-danger border-0"><i class="fa-solid fa-dumpster-fire"></i> Purge Archive Logs</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Profile Settings -->
+                <div id="view-profile" class="admin-tab-view" style="display: none;">
+                    <div class="glass-card p-4" style="max-width: 500px;">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-user-shield text-brand"></i> Administrator Credentials</h5>
+                        <div class="p-3 bg-light rounded border mb-3">
+                            <small class="text-muted d-block">Logged Username</small>
+                            <strong id="admin-prof-username">Admin</strong>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Modals Wizard Layouts -->
+
+    <!-- Modal: Employee Wizard CRUD -->
+    <div class="modal fade" id="modal-employee-wizard" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 overflow-hidden" style="border-radius: var(--radius-md);">
+                <div class="modal-header bg-brand text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold" id="modal-emp-title">Roster Wizard</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="form-employee-mut">
+                    <div class="modal-body p-4 bg-light">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Employee ID</label>
+                            <input type="text" id="mut-emp-id" class="form-input-brand" placeholder="e.g. EMP001" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Full Name</label>
+                            <input type="text" id="mut-emp-name" class="form-input-brand" placeholder="Enter name" required>
+                        </div>
+                        <div id="modal-emp-pass-wrapper" class="mb-3">
+                            <label class="form-label small fw-semibold">Security Password</label>
+                            <input type="password" id="mut-emp-pass" class="form-input-brand" placeholder="Password for login">
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Mobile Number</label>
+                                <input type="tel" id="mut-emp-mobile" class="form-input-brand" placeholder="Mobile">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Email ID</label>
+                                <input type="email" id="mut-emp-email" class="form-input-brand" placeholder="Email">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Assigned Branch Geofence</label>
+                            <select id="mut-emp-branch" class="form-input-brand" required>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Department</label>
+                                <input type="text" id="mut-emp-dept" class="form-input-brand" placeholder="e.g. Sales">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Designation</label>
+                                <input type="text" id="mut-emp-desig" class="form-input-brand" placeholder="e.g. Executive">
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Joining Date</label>
+                                <input type="date" id="mut-emp-joining" class="form-input-brand">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Roster status</label>
+                                <select id="mut-emp-status" class="form-input-brand">
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Designate as Reporting Manager Checkbox -->
+                        <div class="form-check mt-3 mb-1">
+                            <input class="form-check-input" type="checkbox" id="mut-emp-ismanager">
+                            <label class="form-check-label small fw-semibold text-danger" for="mut-emp-ismanager">
+                                <i class="fa-solid fa-user-shield me-1"></i> Designate as Reporting Manager (Can approve leaves/WOs)
+                            </label>
+                        </div>
+                        
+                        <!-- Reporting Manager Selection -->
+                        <div class="mb-3 mt-3">
+                            <label class="form-label small fw-semibold">Reporting Manager(s)</label>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center form-input-brand" type="button" id="dropdownMenuManagers" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="padding: 10px; background: white;">
+                                    <span id="selected-managers-label">Select Managers...</span>
+                                </button>
+                                <ul class="dropdown-menu w-100 p-3 shadow" aria-labelledby="dropdownMenuManagers" id="mut-emp-manager-list" style="max-height: 200px; overflow-y: auto;">
+                                    <!-- Checkboxes populated dynamically -->
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Collapsible Bank Details Section -->
+                        <div class="card border-0 mt-3 shadow-sm rounded">
+                            <div class="card-header bg-white border-0 py-2" id="headingBank" style="padding: 0;">
+                                <h6 class="mb-0">
+                                    <button class="btn btn-link text-decoration-none text-dark fw-bold w-100 text-start d-flex justify-content-between align-items-center py-2 px-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBank" aria-expanded="false" aria-controls="collapseBank">
+                                        <span><i class="fa-solid fa-building-columns text-brand me-2"></i> Employee Bank Details</span>
+                                        <i class="fa-solid fa-chevron-down small"></i>
+                                    </button>
+                                </h6>
+                            </div>
+                            <div id="collapseBank" class="collapse" aria-labelledby="headingBank">
+                                <div class="card-body bg-white p-3 border-top">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold">Bank Name</label>
+                                        <input type="text" id="mut-emp-bank-name" class="form-input-brand" placeholder="e.g. HDFC Bank">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold">Account Number</label>
+                                        <input type="text" id="mut-emp-bank-acc" class="form-input-brand" placeholder="Enter Account Number">
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label small fw-semibold">IFSC Code</label>
+                                            <input type="text" id="mut-emp-bank-ifsc" class="form-input-brand" placeholder="IFSC Code">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small fw-semibold">Bank Branch</label>
+                                            <input type="text" id="mut-emp-bank-branch" class="form-input-brand" placeholder="Branch Name">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-3 bg-white justify-content-end gap-2">
+                        <button type="button" class="btn btn-brand-secondary py-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-brand-primary py-2"><i class="fa-solid fa-floppy-disk"></i> Commit Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Attendance Edit Wizard -->
+    <div class="modal fade" id="modal-attendance-edit" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 overflow-hidden" style="border-radius: var(--radius-md);">
+                <div class="modal-header bg-brand text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold">Modify Attendance Record</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="form-attendance-edit">
+                    <input type="hidden" id="edit-att-id">
+                    <div class="modal-body p-4 bg-light">
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Employee ID</label>
+                                <input type="text" id="edit-att-empid" class="form-input-brand" readonly>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Date</label>
+                                <input type="text" id="edit-att-date" class="form-input-brand" readonly>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Punch In Time</label>
+                                <input type="time" id="edit-att-in" class="form-input-brand">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Punch Out Time</label>
+                                <input type="time" id="edit-att-out" class="form-input-brand">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Attendance Status</label>
+                            <select id="edit-att-status" class="form-input-brand" required>
+                                <option value="Present">Present</option>
+                                <option value="Absent">Absent</option>
+                                <option value="Late Arrival">Late Arrival</option>
+                                <option value="Early Exit">Early Exit</option>
+                                <option value="Weekly Off">Weekly Off (WO)</option>
+                                <option value="Leave">On Leave</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Remarks & Audit Notes</label>
+                            <textarea id="edit-att-remarks" class="form-input-brand" rows="2" placeholder="e.g. Manually corrected by Admin"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-3 bg-white justify-content-end gap-2">
+                        <button type="button" class="btn btn-brand-secondary py-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-brand-primary py-2"><i class="fa-solid fa-save"></i> Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Branch Settings Wizard -->
+    <div class="modal fade" id="modal-branch-wizard" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 overflow-hidden" style="border-radius: var(--radius-md);">
+                <div class="modal-header bg-brand text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold" id="modal-branch-title">Geofence parameters</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="form-branch-mut">
+                    <div class="modal-body p-4 bg-light" style="max-height: 480px; overflow-y: auto;">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Branch Unique ID</label>
+                            <input type="text" id="mut-branch-id" class="form-input-brand" placeholder="e.g. BR-01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Branch Location Name</label>
+                            <input type="text" id="mut-branch-name" class="form-input-brand" placeholder="e.g. Bhubaneswar Showroom" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Address Statement</label>
+                            <input type="text" id="mut-branch-address" class="form-input-brand" placeholder="Street address details">
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Latitude Coordinate</label>
+                                <input type="number" step="any" id="mut-branch-lat" class="form-input-brand" placeholder="e.g. 20.3534" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Longitude Coordinate</label>
+                                <input type="number" step="any" id="mut-branch-lng" class="form-input-brand" placeholder="e.g. 85.8264" required>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Radius bounds (meters)</label>
+                                <input type="number" id="mut-branch-radius" class="form-input-brand" placeholder="e.g. 100" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Grace threshold (mins)</label>
+                                <input type="number" id="mut-branch-grace" class="form-input-brand" placeholder="e.g. 15">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Shift Start In (HH:mm)</label>
+                                <input type="text" id="mut-branch-start" class="form-input-brand" placeholder="09:30" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Shift End Out (HH:mm)</label>
+                                <input type="text" id="mut-branch-end" class="form-input-brand" placeholder="18:30" required>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Half Day time (HH:mm)</label>
+                                <input type="text" id="mut-branch-halfday" class="form-input-brand" placeholder="14:00">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Overtime start (HH:mm)</label>
+                                <input type="text" id="mut-branch-overtime" class="form-input-brand" placeholder="19:00">
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Weekly off day</label>
+                                <select id="mut-branch-off" class="form-input-brand">
+                                    <option value="Sunday">Sunday</option>
+                                    <option value="Monday">Monday</option>
+                                    <option value="Saturday">Saturday</option>
+                                    <option value="None">None</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Status</label>
+                                <select id="mut-branch-status" class="form-input-brand">
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-3 bg-white justify-content-end gap-2">
+                        <button type="button" class="btn btn-brand-secondary py-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-brand-primary py-2"><i class="fa-solid fa-floppy-disk"></i> Commit Geofence</button>
+                    </div>
+                </form>
+            </div>
+    </div>
+
+
+
+    <!-- SweetAlert2 Dependency -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Core Modules -->
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+    
+    <!-- Login router gate controller -->
     <script>
-        // CONFIGURATION: Replace with your deployed Google Apps Script Web App URL
-        const WEB_APP_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
-
-        // FIX: DOMContentLoaded Gateway Interceptor Routine
-        document.addEventListener("DOMContentLoaded", function() {
-    // FIX: Read the secure authentication tokens directly from the web link URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionFlag = urlParams.get("auth");
-    const roleFlag = urlParams.get("role");
-
-    if (sessionFlag === "true" && roleFlag === "Admin") {
-        // Hide the login box overlay completely
-        document.getElementById("admin-login-overlay").style.display = "none";
-        // Reveal the administrative panel metrics dashboard instantly
-        document.getElementById("admin-main-panel").style.display = "block";
-        fetchDashboardMetrics();
-    } else {
-        // If someone opens admin.html without the secure link tokens, show the login screen
-        document.getElementById("admin-login-overlay").style.display = "flex";
-    }
-});
-
-        function fetchDashboardMetrics() {
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "getAdminMetrics" })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "Success") {
-                    document.getElementById("metric-staff").innerText = data.totalEmployees;
-                    document.getElementById("metric-branches").innerText = data.totalBranches;
-                    document.getElementById("metric-present").innerText = data.presentToday;
-                    document.getElementById("metric-mismatch").innerText = data.locationMismatches;
-                }
-            });
-        }
-
-        function loadLedgerData(tableName) {
-            document.getElementById("ledger-title").innerText = `Table Ledger Matrix: ${tableName}`;
-            document.getElementById("ledger-rows").innerHTML = `<tr><td class="text-center py-4"><div class="spinner-border text-danger" role="status"></div></td></tr>`;
+        document.getElementById("form-admin-login").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const user = document.getElementById("admin-uid").value;
+            const pass = document.getElementById("admin-pass").value;
             
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "fetchLedger", targetTable: tableName })
-            })
-            .then(res => res.json())
-            .then(res => {
-                if (res.status === "Success" && res.headers.length > 0) {
-                    let headHtml = "<tr>";
-                    res.headers.forEach(h => headHtml += `<th>${h}</th>`);
-                    headHtml += "</tr>";
-                    document.getElementById("ledger-headers").innerHTML = headHtml;
-
-                    let bodyHtml = "";
-                    res.data.forEach(row => {
-                        bodyHtml += "<tr>";
-                        res.headers.forEach(h => {
-                            bodyHtml += `<td>${row[h] || ""}</td>`;
-                        });
-                        bodyHtml += "</tr>";
-                    });
-                    document.getElementById("ledger-rows").innerHTML = bodyHtml;
+            const res = await Auth.login(user, pass, false, "Admin");
+            if (res.success) {
+                if (res.role === "Employee") {
+                    window.location.href = "index.html";
                 } else {
-                    document.getElementById("ledger-rows").innerHTML = `<tr><td class="text-center text-muted">Table is currently blank.</td></tr>`;
+                    // Success: hide login and boot admin dashboard layout
+                    document.getElementById("view-admin-login").style.display = "none";
+                    document.getElementById("admin-panel-layout").style.display = "flex";
+                    AdminApp.init();
                 }
-            });
-        }
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Access Denied",
+                    text: res.message,
+                    confirmButtonColor: "#E4002B"
+                });
+            }
+        });
 
-        function handleManualAdminLogin() {
-            const user = document.getElementById("alt-username").value;
-            const pass = document.getElementById("alt-password").value;
-            
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                body: JSON.stringify({ action: "adminLogin", username: user, password: pass })
-            })
-            .then(res => res.json())
-            .then(result => {
-                if (result.status === "Success") {
-                    localStorage.setItem("is_admin_logged_in", "true");
-                    localStorage.setItem("admin_role", "Admin");
-                    document.getElementById("admin-login-overlay").style.display = "none";
-                    document.getElementById("admin-main-panel").style.display = "block";
-                    fetchDashboardMetrics();
-                } else {
-                    alert("Invalid Admin Credentials.");
+        document.addEventListener("DOMContentLoaded", () => {
+            if (Auth.isLoggedIn()) {
+                if (Auth.getRole() === "Employee") {
+                    window.location.href = "index.html";
+                } else if (Auth.getRole() === "Admin") {
+                    document.getElementById("view-admin-login").style.display = "none";
+                    document.getElementById("admin-panel-layout").style.display = "flex";
+                    AdminApp.init();
                 }
-            });
-        }
-
-        function executeAdminSessionLogout() {
-            // Securely wipe the browser session memory note
-            localStorage.removeItem("is_admin_logged_in");
-            localStorage.removeItem("admin_username");
-            localStorage.removeItem("admin_role");
-            alert("Administrative Security Terminal Locked.");
-            window.location.href = "index.html"; // Send back to login portal screen
-        }
+            }
+        });
     </script>
 </body>
 </html>
