@@ -1,4 +1,4 @@
-const CACHE_NAME = "heams-cache-v70";
+const CACHE_NAME = "eams-cache-v73";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
