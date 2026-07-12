@@ -2390,7 +2390,7 @@ const AdminApp = {
                 await this.showDayPunchAudit(this._currentAuditEmployeeId, this._currentAuditDateStr, this._matrixPunchFromEmployee);
                 // Also trigger re-render of matrix if it was the source
                 if (this._matrixPunchFromEmployee) {
-                    this.renderEmployeeMonthAudit(this._currentAuditEmployeeId);
+                    this.showEmployeeMonthAudit(this._currentAuditEmployeeId, this._currentAuditYearMonth);
                 } else {
                     await this.loadAttendanceMatrix();
                 }
@@ -2437,7 +2437,7 @@ const AdminApp = {
                 sessionStorage.removeItem("EAMS_admin_cache_history");
                 this.historyCache = {}; 
                 // We are inside the employee month audit, just refresh it
-                await this.renderEmployeeMonthAudit(employeeId);
+                await this.showEmployeeMonthAudit(employeeId, this._currentAuditYearMonth);
             } else {
                 alert("Update failed: " + res.message);
                 selectElement.style.backgroundColor = originalBg;
