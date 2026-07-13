@@ -2063,7 +2063,8 @@ const AdminApp = {
                             punchIn: log.PunchIn || "--",
                             punchOut: log.PunchOut || "--",
                             workingHours: log.WorkingHours || "--",
-                            remarks: log.Remarks || "--"
+                            remarks: log.Remarks || "--",
+                            attId: log.AttendanceID || ""
                         });
                     } else {
                         // No attendance record — check approved leaves (normalized dates)
@@ -2086,7 +2087,8 @@ const AdminApp = {
                             punchIn: "--",
                             punchOut: "--",
                             workingHours: "--",
-                            remarks: "--"
+                            remarks: "--",
+                            attId: ""
                         });
                     }
                 }
@@ -2130,7 +2132,7 @@ const AdminApp = {
                             <td>${r.workingHours}</td>
                             <td class="small text-muted">${r.remarks}</td>
                             <td onclick="event.stopPropagation()">
-                                <select class="form-select form-select-sm bg-dark text-white border-secondary" style="width:140px;" data-original="${sClean}" onchange="AdminApp.quickUpdateStatus('${employeeId}', '${r.date}', this.value, this)">
+                                <select class="form-select form-select-sm bg-dark text-white border-secondary day-status-select" style="width:140px;" data-original="${sClean}" data-empid="${employeeId}" data-date="${r.date}" data-attid="${r.attId}" onchange="AdminApp.markStatusChanged(this)">
                                     ${selectOptions}
                                 </select>
                             </td>
@@ -2406,48 +2408,74 @@ const AdminApp = {
         }
     },
 
-    // Handle Quick Inline Status Update from Roster List
-    async quickUpdateStatus(employeeId, dateStr, newStatus, selectElement) {
-        // Find existing log if any
-        let existingLog = null;
-        if (this.historyCache[employeeId]) {
-            existingLog = this.historyCache[employeeId].find(a => this.normDateToISO(a.Date) === dateStr && (a.Status || "").indexOf("Manual") === -1);
-            if(!existingLog) existingLog = this.historyCache[employeeId].find(a => this.normDateToISO(a.Date) === dateStr);
+    // Handle dropdown change event to mark visually and show save button
+    markStatusChanged(selectElement) {
+        if (selectElement.value !== selectElement.dataset.original) {
+            selectElement.classList.remove("border-secondary");
+            selectElement.classList.add("border-warning", "changed-status");
+            document.getElementById("btn-bulk-save").style.display = "inline-block";
+        } else {
+            selectElement.classList.add("border-secondary");
+            selectElement.classList.remove("border-warning", "changed-status");
+            // Hide button if no changes left
+            if (document.querySelectorAll('.changed-status').length === 0) {
+                document.getElementById("btn-bulk-save").style.display = "none";
+            }
         }
+    },
 
-        const packet = {
-            action: "updateAttendance",
-            AttendanceID: existingLog ? existingLog.AttendanceID : `${employeeId}_${dateStr}`,
-            EmployeeID: employeeId,
-            Date: dateStr,
-            PunchIn: existingLog ? existingLog.PunchIn : "",
-            PunchOut: existingLog ? existingLog.PunchOut : "",
-            Status: newStatus,
-            Remarks: "[Admin Modified] Quick override status: " + newStatus
-        };
+    // Save all modified dropdowns
+    async saveBulkStatusUpdates() {
+        const changedSelects = document.querySelectorAll('.changed-status');
+        if (changedSelects.length === 0) return;
 
-        const originalBg = selectElement.style.backgroundColor;
-        selectElement.style.backgroundColor = "#ff9800"; // loading indication
-        selectElement.disabled = true;
+        const changes = [];
+        changedSelects.forEach(sel => {
+            changes.push({
+                EmployeeID: sel.dataset.empid,
+                Date: sel.dataset.date,
+                Status: sel.value,
+                AttendanceID: sel.dataset.attid || `${sel.dataset.empid}_${sel.dataset.date}`
+            });
+        });
+
+        const btn = document.getElementById("btn-bulk-save");
+        const originalBtnHtml = btn.innerHTML;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Saving...`;
+        btn.disabled = true;
+        
+        changedSelects.forEach(sel => sel.disabled = true);
 
         try {
-            const res = await API.call(packet, true);
+            const res = await API.call({
+                action: "batchUpdateAttendance",
+                changes: changes
+            }, true);
+
             if (res.status === "Success") {
-                // Wipe cache and redraw current view
                 sessionStorage.removeItem("EAMS_admin_cache_history");
                 this.historyCache = {}; 
-                // We are inside the employee month audit, just refresh it
-                await this.showEmployeeMonthAudit(employeeId, this._currentAuditYearMonth);
+                
+                const toast = document.createElement("div");
+                toast.className = "position-fixed top-0 start-50 translate-middle-x mt-4 p-3 bg-success text-white rounded shadow-lg";
+                toast.style.zIndex = "9999";
+                toast.innerText = res.message;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+
+                btn.style.display = "none";
+                await this.showEmployeeMonthAudit(this._currentAuditEmployeeId, this._currentAuditYearMonth);
             } else {
-                alert("Update failed: " + res.message);
-                selectElement.style.backgroundColor = originalBg;
-                selectElement.disabled = false;
+                alert("Bulk update failed: " + res.message);
+                changedSelects.forEach(sel => sel.disabled = false);
             }
         } catch (err) {
-            console.error("Quick update failed:", err);
-            alert("Communication error during update.");
-            selectElement.style.backgroundColor = originalBg;
-            selectElement.disabled = false;
+            console.error("Bulk update failed:", err);
+            alert("Communication error during bulk update.");
+            changedSelects.forEach(sel => sel.disabled = false);
+        } finally {
+            btn.innerHTML = originalBtnHtml;
+            btn.disabled = false;
         }
     }
 };
