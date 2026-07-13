@@ -232,7 +232,12 @@
                         <div class="glass-card p-4">
                             <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                                 <h5 class="fw-bold text-brand m-0"><i class="fa-solid fa-address-card"></i> Employee Monthly Log Roster</h5>
-                                <button class="btn btn-sm btn-brand-secondary" onclick="AdminApp.showMatrixGridHome()"><i class="fa-solid fa-arrow-left"></i> Back to Registry</button>
+                                <div>
+                                    <button id="btn-bulk-save" class="btn btn-sm btn-success me-2" style="display: none;" onclick="AdminApp.saveBulkStatusUpdates()">
+                                        <i class="fa-solid fa-floppy-disk"></i> Save Modifications
+                                    </button>
+                                    <button class="btn btn-sm btn-brand-secondary" onclick="AdminApp.showMatrixGridHome()"><i class="fa-solid fa-arrow-left"></i> Back to Registry</button>
+                                </div>
                             </div>
                             <div class="card p-3 mb-3 border-0 shadow-sm">
                                 <div class="row g-2 text-start">
