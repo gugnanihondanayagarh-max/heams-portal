@@ -3,725 +3,1007 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EAMS - Employee Portal</title>
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#E4002B">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3652/3652191.png">
-    
+    <title>EAMS - Admin Terminal</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome 6 Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js Dependency -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <!-- Custom Style Modules -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/dashboard.css">
-    <link rel="stylesheet" href="css/attendance.css">
-    
-    <style>
-        /* Specific bottom navigation bar for mobile first index layout */
-        .bottom-nav-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--light-panel);
-            border-top: 1px solid var(--light-border);
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 0;
-            z-index: 1020;
-            box-shadow: 0 -4px 10px rgba(0,0,0,0.03);
-            transition: var(--transition);
-        }
-        body.dark-mode .bottom-nav-bar {
-            background: var(--dark-panel);
-            border-top-color: var(--dark-border);
-        }
-        .bottom-nav-link {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-size: 0.75rem;
-            color: var(--light-muted);
-            text-decoration: none;
-            font-weight: 500;
-            transition: var(--transition);
-        }
-        body.dark-mode .bottom-nav-link {
-            color: var(--dark-muted);
-        }
-        .bottom-nav-link i {
-            font-size: 1.25rem;
-            margin-bottom: 2px;
-        }
-        .bottom-nav-link.active {
-            color: var(--brand-color);
-        }
-        .employee-view-section {
-            padding-bottom: 80px; /* buffer for bottom bar */
-        }
-        /* Custom calendar stylesheet for employee history screen */
-        .calendar-wrapper {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            margin-top: 15px;
-        }
-        .calendar-header-day {
-            text-align: center;
-            font-weight: 600;
-            font-size: 0.8rem;
-            color: var(--light-muted);
-        }
-        body.dark-mode .calendar-header-day {
-            color: var(--dark-muted);
-        }
-        .calendar-day {
-            aspect-ratio: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: var(--light-bg);
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            position: relative;
-            cursor: pointer;
-            border: 1px solid var(--light-border);
-            transition: var(--transition);
-        }
-        body.dark-mode .calendar-day {
-            background: rgba(255, 255, 255, 0.02);
-            border-color: var(--dark-border);
-        }
-        .calendar-day.empty {
-            background: transparent;
-            border-color: transparent;
-            cursor: default;
-        }
-        .calendar-day.present {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--success);
-            border-color: var(--success);
-        }
-        .calendar-day.absent {
-            background: rgba(239, 68, 68, 0.15);
-            color: var(--danger);
-            border-color: var(--danger);
-        }
-        .calendar-day.late {
-            background: rgba(245, 158, 11, 0.15);
-            color: var(--warning);
-            border-color: var(--warning);
-        }
-        .calendar-day.mismatch {
-            background: rgba(239, 68, 68, 0.15);
-            color: var(--danger);
-            border-color: var(--danger);
-        }
-        .today-state-box, .themed-badge-box {
-            background: rgba(0, 0, 0, 0.02);
-            border: 1px solid var(--light-border);
-            color: var(--light-text);
-        }
-        body.dark-mode .today-state-box, body.dark-mode .themed-badge-box {
-            background: rgba(255, 255, 255, 0.03);
-            border-color: var(--dark-border);
-            color: var(--dark-text);
-        }
-        .day-number {
-            z-index: 2;
-        }
-        .text-muted-custom {
-            color: var(--light-muted) !important;
-        }
-        body.dark-mode .text-muted-custom {
-            color: rgba(255, 255, 255, 0.55) !important;
-        }
-        .calendar-day.half {
-            background: rgba(245, 158, 11, 0.15);
-            color: var(--warning);
-            border-color: var(--warning);
-        }
-        .calendar-day.weekly-off, .calendar-day.holiday {
-            background: rgba(128, 128, 128, 0.08);
-            color: var(--light-muted);
-            border-color: var(--light-border);
-        }
-        body.dark-mode .calendar-day.weekly-off, body.dark-mode .calendar-day.holiday {
-            color: var(--dark-muted);
-            border-color: var(--dark-border);
-        }
-        .day-status-letter {
-            font-size: 0.8rem;
-            margin-top: 1px;
-            display: block;
-        }
-    </style>
+    <link rel="stylesheet" href="css/admin.css">
 </head>
-<body class="employee-restricted-context">
+<body>
 
-    <!-- Connecting Gateway Loader Screen -->
-    <div id="loading-gateway-screen" style="display: none;">
-        <div class="spinner-brand"></div>
-        <h4 class="fw-bold m-0" style="letter-spacing: 0.5px;"><span>EAMS</span></h4>
-        <p class="text-muted mt-2 small">Synchronizing secure clock matrices...</p>
-    </div>
-
-    <!-- Login Authentication View -->
-    <div id="view-login" class="container-fluid flex-center min-vh-100" style="background: linear-gradient(135deg, #111111 0%, #1c1c24 100%);">
-        <div class="glass-card p-4 mx-auto w-100 animated-fade-in-up" style="max-width: 400px; background: rgba(30, 30, 38, 0.75); border-color: rgba(255,255,255,0.06); color: #FFFFFF;">
+    <!-- Dynamic Admin Login Overlay -->
+    <div id="view-admin-login" class="container-fluid flex-center min-vh-100" style="background: linear-gradient(135deg, #111111 0%, #17171e 100%);">
+        <div class="glass-card p-4 mx-auto w-100 animated-fade-in-up" style="max-width: 400px; background: rgba(26, 26, 32, 0.85); border-color: rgba(255,255,255,0.06); color: #FFFFFF;">
             <div class="text-center mb-4">
                 <svg viewBox="0 0 512 512" class="mb-2" style="width: 3.5rem; height: 3.5rem;" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h211c-13.8-19.1-22-42.5-22-68 0-61.9 50.1-112 112-112 25.5 0 48.9 8.2 68 22V422.4c0-74.2-60.2-134.4-134.4-134.4z"/><circle cx="400" cy="400" r="112" fill="#4caf50"/><path d="M340 400 l40 40 l80 -80" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                <h3 class="fw-bold mb-1"><span>EAMS</span></h3>
-                <small class="text-muted uppercase">Attendance Portal Login</small>
+                <h3 class="fw-bold mb-1">EAMS <span>Admin</span></h3>
+                <small class="text-muted uppercase">Administrative Terminal Login</small>
             </div>
             
-            <form id="form-login-gate">
+            <form id="form-admin-login">
                 <div class="mb-3">
-                    <label class="form-label small fw-semibold text-muted">Employee ID / Username</label>
+                    <label class="form-label small fw-semibold text-muted">Admin Username</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-light border-secondary text-muted"><i class="fa-solid fa-user"></i></span>
-                        <input type="text" id="login-uid" class="form-control bg-white border-secondary text-dark" placeholder="e.g. EMP001" required>
+                        <span class="input-group-text bg-light border-secondary text-muted"><i class="fa-solid fa-user-shield"></i></span>
+                        <input type="text" id="admin-uid" class="form-control bg-white border-secondary text-dark" placeholder="Username ID" required>
                     </div>
                 </div>
-                <div class="mb-3">
+                <div class="mb-4">
                     <label class="form-label small fw-semibold text-muted">Access Password</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-secondary text-muted"><i class="fa-solid fa-lock"></i></span>
-                        <input type="password" id="login-pass" class="form-control bg-white border-secondary text-dark" placeholder="••••••••" required>
+                        <input type="password" id="admin-pass" class="form-control bg-white border-secondary text-dark" placeholder="••••••••" required>
                     </div>
                 </div>
-                <div class="d-flex justify-content-between align-items-center mb-4 small">
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="login-remember">
-                        <label class="form-check-label text-muted" for="login-remember">Remember ID</label>
-                    </div>
-                    <a href="admin.html" class="text-decoration-none text-brand fw-bold">Admin Console</a>
-                </div>
-                <button type="submit" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-right-to-bracket"></i> Secure Access Login</button>
+                <button type="submit" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-lock-open"></i> Unlock Dashboard</button>
             </form>
         </div>
     </div>
 
-    <!-- Employee Authenticated SPA Layout -->
-    <div id="employee-panel-layout" style="display: none;">
-        <!-- Top Sticky Header -->
-        <header class="brand-navbar">
-            <div class="navbar-brand-logo">
+    <!-- Admin Panel Full Wrapper Layout -->
+    <div id="admin-panel-layout" class="admin-wrapper" style="display: none;">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
                 <svg viewBox="0 0 512 512" style="width: 2rem; height: 2rem; margin-right: 10px;" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h211c-13.8-19.1-22-42.5-22-68 0-61.9 50.1-112 112-112 25.5 0 48.9 8.2 68 22V422.4c0-74.2-60.2-134.4-134.4-134.4z"/><circle cx="400" cy="400" r="112" fill="#4caf50"/><path d="M340 400 l40 40 l80 -80" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                <h4 class="brand-title">EAMS</h4>
+                <h4 class="brand-title m-0 text-white">EAMS <span>Admin</span></h4>
             </div>
-            <div class="d-flex align-items-center gap-3">
-                <button id="theme-toggle-emp" class="theme-toggle-btn"><i class="fa-solid fa-moon"></i></button>
-                <button class="btn btn-sm btn-outline-danger" onclick="Auth.logout()"><i class="fa-solid fa-power-off"></i></button>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="#" class="sidebar-link active" data-tab="dashboard">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="matrix-dashboard">
+                        <i class="fa-solid fa-calendar-days"></i>
+                        <span>Attendance Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="employees">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Employees</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="attendance">
+                        <i class="fa-solid fa-clipboard-user"></i>
+                        <span>Attendance Ledger</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="branches">
+                        <i class="fa-solid fa-building-circle-check"></i>
+                        <span>Branch settings</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="leave">
+                        <i class="fa-solid fa-envelope-open-text"></i>
+                        <span>Leave Requests</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="corrections">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Correction Requests</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="holiday">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        <span>Holidays planner</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="reports">
+                        <i class="fa-solid fa-file-invoice"></i>
+                        <span>Reports Terminal</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="sidebar-link" data-tab="settings">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>System Settings</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="#" class="sidebar-link" data-tab="profile">
+                    <i class="fa-solid fa-user-cog"></i>
+                    <span>Profile</span>
+                </a>
             </div>
-        </header>
+        </aside>
 
-        <!-- Dynamic Employee Views Wrapper -->
-        <main class="container py-4 employee-view-section">
-            
-            <!-- View: Dashboard -->
-            <div id="view-dashboard" class="employee-view" style="display: none;">
-                <div class="glass-card p-4 mb-4 text-center">
-                    <h5 class="text-muted-custom mb-1">Welcome back,</h5>
-                    <h3 class="fw-bold text-brand mb-3" id="employee-welcome-name">Employee</h3>
-                    <div class="p-3 today-state-box rounded text-center d-inline-block small" style="min-width: 250px;">
-                        <span class="fw-semibold text-muted-custom">Today's State:</span>
-                        <div class="mt-1 fw-bold" id="dash-punch-state">Checking status...</div>
-                    </div>
-                    <div class="mt-3">
-                        <button class="btn btn-sm btn-outline-danger" onclick="EmployeeApp.openCorrectionModal()"><i class="fa-solid fa-clock-rotate-left"></i> Request Missed Punch Correction</button>
-                    </div>
+        <!-- Main Content Area -->
+        <div class="admin-main-panel">
+            <!-- Header Bar -->
+            <header class="admin-header-nav">
+                <div class="d-flex align-items-center gap-3">
+                    <button id="sidebar-toggle-btn" class="sidebar-toggler-btn"><i class="fa-solid fa-bars"></i></button>
+                    <h5 class="fw-bold m-0" id="admin-panel-title">Console Terminal</h5>
                 </div>
-
-                <!-- FactoTime stats grid -->
-                <div class="metric-grid">
-                    <div class="metric-card-custom present">
-                        <div class="metric-icon-wrapper"><i class="fa-solid fa-calendar-check"></i></div>
-                        <div class="metric-info">
-                            <h6 class="metric-label">Presents</h6>
-                            <h3 class="metric-val" id="stat-present">0</h3>
-                        </div>
-                    </div>
-                    <div class="metric-card-custom absent">
-                        <div class="metric-icon-wrapper"><i class="fa-solid fa-calendar-times"></i></div>
-                        <div class="metric-info">
-                            <h6 class="metric-label">Absents</h6>
-                            <h3 class="metric-val" id="stat-absent">0</h3>
-                        </div>
-                    </div>
-                    <div class="metric-card-custom late">
-                        <div class="metric-icon-wrapper"><i class="fa-solid fa-clock"></i></div>
-                        <div class="metric-info">
-                            <h6 class="metric-label">Late Days</h6>
-                            <h3 class="metric-val" id="stat-late">0</h3>
-                        </div>
-                    </div>
-                    <div class="metric-card-custom leave">
-                        <div class="metric-icon-wrapper"><i class="fa-solid fa-plane-departure"></i></div>
-                        <div class="metric-info">
-                            <h6 class="metric-label">Leaves Used</h6>
-                            <h3 class="metric-val" id="stat-leaves">0</h3>
-                        </div>
-                    </div>
-                    <div class="metric-card-custom late" style="border-left-color: var(--warning);">
-                        <div class="metric-icon-wrapper" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);"><i class="fa-solid fa-business-time"></i></div>
-                        <div class="metric-info">
-                            <h6 class="metric-label">Half Days</h6>
-                            <h3 class="metric-val" id="stat-half">0</h3>
-                        </div>
-                    </div>
+                <div class="d-flex align-items-center gap-3">
+                    <button id="theme-toggle-admin" class="theme-toggle-btn"><i class="fa-solid fa-moon"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="Auth.logout()"><i class="fa-solid fa-power-off"></i> Lock Terminal</button>
                 </div>
+            </header>
 
-                <!-- Main Layout Details -->
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <div class="glass-card chart-panel-card h-100">
-                            <div class="chart-title-header">
-                                <h5><i class="fa-solid fa-business-time text-brand"></i> Shift & Branch</h5>
+            <!-- Dynamic Content Bodies -->
+            <main class="admin-content-body">
+                
+                <!-- Tab: Dashboard -->
+                <div id="view-dashboard" class="admin-tab-view" style="display: none;">
+                    <div class="metric-grid">
+                        <div class="metric-card-custom present">
+                            <div class="metric-icon-wrapper"><i class="fa-solid fa-users"></i></div>
+                            <div class="metric-info">
+                                <h6 class="metric-label">Roster Employees</h6>
+                                <h3 class="metric-val" id="metrics-staff">0</h3>
                             </div>
-                            <div class="shift-details-box">
-                                <div class="shift-row">
-                                    <span class="shift-row-label">Branch Location</span>
-                                    <span class="shift-row-val" id="dash-branch-name">--</span>
-                                </div>
-                                <div class="shift-row">
-                                    <span class="shift-row-label">Office Hours</span>
-                                    <span class="shift-row-val" id="dash-office-timing">--</span>
-                                </div>
-                                <div class="shift-row">
-                                    <span class="shift-row-label">Shift Hours Policy</span>
-                                    <span class="shift-row-val">Full Day Required</span>
-                                </div>
+                        </div>
+                        <div class="metric-card-custom leave">
+                            <div class="metric-icon-wrapper"><i class="fa-solid fa-map-marked-alt"></i></div>
+                            <div class="metric-info">
+                                <h6 class="metric-label">Active Branches</h6>
+                                <h3 class="metric-val" id="metrics-branches">0</h3>
                             </div>
-                            <!-- Circular Attendance Percentage Indicator -->
-                            <div class="circular-progress-container">
-                                <svg width="150" height="150" viewBox="0 0 150 150">
-                                    <circle class="svg-circle-bg" cx="75" cy="75" r="60" />
-                                    <circle id="circle-progress-fill" class="svg-circle-progress" cx="75" cy="75" r="60" stroke-dashoffset="0" />
-                                </svg>
-                                <div class="circular-text">
-                                    <div class="circular-percentage" id="circle-progress-text">100%</div>
-                                    <div class="circular-label">Attendance</div>
-                                </div>
+                        </div>
+                        <div class="metric-card-custom present">
+                            <div class="metric-icon-wrapper"><i class="fa-solid fa-user-check"></i></div>
+                            <div class="metric-info">
+                                <h6 class="metric-label">Presents Today</h6>
+                                <h3 class="metric-val" id="metrics-present">0</h3>
+                            </div>
+                        </div>
+                        <div class="metric-card-custom absent">
+                            <div class="metric-icon-wrapper"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="metric-info">
+                                <h6 class="metric-label">GPS Fault Alerts</h6>
+                                <h3 class="metric-val" id="metrics-mismatches">0</h3>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-md-6">
-                        <div class="glass-card chart-panel-card h-100">
-                            <div class="chart-title-header">
-                                <h5><i class="fa-solid fa-history text-brand"></i> Recent Activity logs</h5>
-                            </div>
-                            <div class="history-feed-list" id="recent-activities-list">
-                                <div class="text-center py-4"><div class="spinner-border text-danger"></div></div>
+                    <!-- Charts row -->
+                    <div class="row g-4">
+                        <div class="col-lg-7">
+                            <div class="glass-card chart-panel-card" style="height: 380px;">
+                                <div class="chart-title-header">
+                                    <h5><i class="fa-solid fa-chart-line text-brand"></i> Attendance Trend Line</h5>
+                                </div>
+                                <div style="height: 280px; position: relative;">
+                                    <canvas id="chart-attendance-trend"></canvas>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- View: Punch Screen -->
-            <div id="view-punch" class="employee-view" style="display: none;">
-                <div class="row justify-content-center">
-                    <div class="col-md-6">
-                        <div class="glass-card p-4 punch-frame">
-                            <h4 class="fw-bold text-center text-brand mb-1"><i class="fa-solid fa-camera"></i> Selfie Geofence Verification</h4>
-                            <p class="text-muted text-center small mb-3">Front camera snap & branch radius checks required.</p>
-
-                            <!-- Camera frame -->
-                            <div class="camera-viewport-container">
-                                <video id="camera-stream" class="camera-stream-video" autoplay playsinline></video>
-                                <img id="selfie-preview" class="captured-image-preview" src="" alt="Captured Selfie">
-                                <div class="camera-overlay-mask">
-                                    <div class="camera-guide-ellipse"></div>
+                        <div class="col-lg-5">
+                            <div class="glass-card chart-panel-card" style="height: 380px;">
+                                <div class="chart-title-header">
+                                    <h5><i class="fa-solid fa-chart-bar text-brand"></i> Branch Breakdown</h5>
                                 </div>
-                            </div>
-
-                            <!-- Camera controls -->
-                            <div class="camera-actions-row">
-                                <button id="btn-capture-selfie" class="camera-action-btn camera-btn-capture"><i class="fa-solid fa-camera-retro"></i> Capture Selfie</button>
-                                <button id="btn-retake-selfie" class="camera-action-btn camera-btn-retake" style="display: none;"><i class="fa-solid fa-rotate-left"></i> Retake Photo</button>
-                            </div>
-
-                            <!-- GPS Data Box -->
-                            <div class="geo-telemetry-panel">
-                                <div class="geo-row">
-                                    <i class="fa-solid fa-satellite-dish geo-icon"></i>
-                                    <div class="geo-details">
-                                        <h6 class="geo-title">Geofence Proximity</h6>
-                                        <div class="mt-1"><span id="gps-status-badge" class="geo-status-indicator pending">Acquiring Satellites...</span></div>
-                                    </div>
-                                </div>
-                                <div class="geo-row">
-                                    <i class="fa-solid fa-map-location-dot geo-icon"></i>
-                                    <div class="geo-details">
-                                        <h6 class="geo-title">GPS Coordinates</h6>
-                                        <p class="geo-value"><span id="gps-latitude">--</span>, <span id="gps-longitude">--</span></p>
-                                        <div class="accuracy-bar-container">
-                                            <div id="gps-accuracy-fill" class="accuracy-bar-fill"></div>
-                                        </div>
-                                        <small id="gps-accuracy-text" class="text-muted" style="font-size: 0.7rem;">Accuracy: --</small>
-                                    </div>
-                                </div>
-                                <div class="geo-row">
-                                    <i class="fa-solid fa-ruler geo-icon"></i>
-                                    <div class="geo-details">
-                                        <h6 class="geo-title">Distance to Office</h6>
-                                        <p class="geo-value" id="gps-distance">--</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Remarks & Punch options -->
-                            <div class="w-100">
-                                <textarea id="punch-remarks" class="form-input-brand mb-3" rows="2" placeholder="Optional remarks/notes..."></textarea>
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <button id="btn-submit-punch-in" class="btn btn-success w-100 py-3 fw-bold"><i class="fa-solid fa-fingerprint"></i> Punch IN</button>
-                                    </div>
-                                    <div class="col-6">
-                                        <button id="btn-submit-punch-out" class="btn btn-danger w-100 py-3 fw-bold"><i class="fa-solid fa-door-open"></i> Punch OUT</button>
-                                    </div>
+                                <div style="height: 280px; position: relative;">
+                                    <canvas id="chart-branch-attendance"></canvas>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- View: History Logs & Calendar -->
-            <div id="view-history" class="employee-view" style="display: none;">
-                <div class="row g-4">
-                    <div class="col-md-5">
+                <!-- Tab: Attendance Dashboard (Monthly Matrix & Audits) -->
+                <div id="view-matrix-dashboard" class="admin-tab-view" style="display: none;">
+                    
+                    <!-- Sub-view 1: Matrix Grid -->
+                    <div id="matrix-grid-subview">
                         <div class="glass-card p-4">
-                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-calendar-alt"></i> Attendance Calendar</h5>
-                            
-                            <!-- Calendar Month/Year Navigator -->
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="EmployeeApp.changeCalendarMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-                                <strong id="calendar-month-year-label" class="text-secondary">--</strong>
-                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="EmployeeApp.changeCalendarMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                                <h5 class="fw-bold text-brand m-0"><i class="fa-solid fa-calendar-days"></i> Monthly Registry Grid (Matrix)</h5>
+                                <div class="d-flex gap-2">
+                                    <input type="month" id="dashboard-matrix-month" class="form-input-brand py-1" style="width: auto;">
+                                    <button class="btn btn-sm btn-brand-primary px-3" onclick="AdminApp.loadDashboardMatrix()"><i class="fa-solid fa-arrows-rotate"></i> Reload</button>
+                                </div>
                             </div>
-                            
-                            <div class="calendar-wrapper">
-                                <div class="calendar-header-day">Su</div>
-                                <div class="calendar-header-day">Mo</div>
-                                <div class="calendar-header-day">Tu</div>
-                                <div class="calendar-header-day">We</div>
-                                <div class="calendar-header-day">Th</div>
-                                <div class="calendar-header-day">Fr</div>
-                                <div class="calendar-header-day">Sa</div>
-                            </div>
-                            <div id="history-calendar-grid" class="calendar-wrapper">
-                                <!-- JS Populated -->
-                            </div>
-                            <div class="mt-3 d-flex justify-content-around flex-wrap gap-2 small border-top pt-2">
-                                <div><span class="badge bg-success">P</span> Present</div>
-                                <div><span class="badge bg-warning text-dark">H</span> Half Day</div>
-                                <div><span class="badge bg-danger">A</span> Absent</div>
-                                <div><span class="badge bg-secondary">WO</span> Off</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-7">
-                        <div class="glass-card p-4">
-                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-list-check"></i> Clock Ledger</h5>
-                            <div class="table-responsive" style="max-height: 450px;">
-                                <table class="table table-striped align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>In</th>
-                                            <th>Out</th>
-                                            <th>Hours</th>
-                                            <th>GPS</th>
-                                        </tr>
+                            <div class="table-responsive" style="max-height: calc(100vh - 260px); overflow: auto;">
+                                <table class="custom-table table-sm" id="dashboard-matrix-table" style="min-width: max-content;">
+                                    <thead id="dashboard-matrix-headers" style="position: sticky; top: 0; z-index: 2;">
+                                        <!-- JS Loaded -->
                                     </thead>
-                                    <tbody id="history-table-body">
+                                    <tbody id="dashboard-matrix-rows">
                                         <!-- JS Loaded -->
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- View: Leaves -->
-            <div id="view-leave" class="employee-view" style="display: none;">
-                <div class="row g-4">
-                    <div class="col-md-5">
+                    <!-- Sub-view 2: Employee Full Month Audit Details -->
+                    <div id="matrix-emp-detail-subview" style="display: none;">
                         <div class="glass-card p-4">
-                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-file-signature"></i> Apply for WO / Leave</h5>
-                            <form id="form-apply-leave">
-                                <div class="mb-3">
-                                    <label class="form-label small fw-semibold">WO / Leave Type</label>
-                                    <select id="leave-type" class="form-input-brand" onchange="EmployeeApp.toggleLeaveAttachmentCheck()">
-                                        <option value="Weekly Off">Weekly Off (WO)</option>
-                                        <option value="Casual">Casual Leave</option>
-                                        <option value="Medical">Medical Leave</option>
-                                        <option value="Emergency">Emergency Leave</option>
-                                    </select>
+                            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                <h5 class="fw-bold text-brand m-0"><i class="fa-solid fa-address-card"></i> Employee Monthly Log Roster</h5>
+                                <div>
+                                    <button id="btn-bulk-save" class="btn btn-sm btn-success me-2" style="display: none;" onclick="AdminApp.saveBulkStatusUpdates()">
+                                        <i class="fa-solid fa-floppy-disk"></i> Save Modifications
+                                    </button>
+                                    <button class="btn btn-sm btn-brand-secondary" onclick="AdminApp.showMatrixGridHome()"><i class="fa-solid fa-arrow-left"></i> Back to Registry</button>
                                 </div>
-                                <div class="row g-2 mb-3">
-                                    <div class="col-6">
-                                        <label class="form-label small fw-semibold">Start Date</label>
-                                        <input type="date" id="leave-start-date" class="form-input-brand" onchange="EmployeeApp.toggleLeaveAttachmentCheck()" required>
-                                    </div>
-                                    <div class="col-6">
-                                        <label class="form-label small fw-semibold">End Date</label>
-                                        <input type="date" id="leave-end-date" class="form-input-brand" onchange="EmployeeApp.toggleLeaveAttachmentCheck()" required>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label small fw-semibold">Reason Statement</label>
-                                    <textarea id="leave-reason" class="form-input-brand" rows="3" placeholder="Brief explanation..." required></textarea>
-                                </div>
-                                <div class="mb-3" id="consecutive-warning" style="display: none;">
-                                    <div class="alert alert-warning py-2 px-3 small border-0 mb-0">
-                                        <i class="fa-solid fa-triangle-exclamation text-warning me-1"></i>
-                                        <span id="warning-message">Notice: Consecutive off-days check triggered. Supervisor recommendation proof document is required.</span>
-                                    </div>
-                                </div>
-                                <div class="mb-3" id="leave-attachment-container" style="display: none;">
-                                    <label class="form-label small fw-semibold text-danger">Supervisor Recommendation / Proof (Required)</label>
-                                    <input type="file" id="leave-proof" class="form-input-brand" accept="image/*,application/pdf">
-                                </div>
-                                <button type="submit" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-paper-plane"></i> File Application</button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <div class="col-md-7">
-                        <div class="glass-card p-4">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="fw-bold text-brand m-0"><i class="fa-solid fa-receipt"></i> Monthly WO Balance</h5>
                             </div>
-                            <!-- Balance headers grid -->
-                            <div class="row g-2 mb-4 text-center">
-                                <div class="col-12">
-                                    <div class="p-3 themed-badge-box rounded">
-                                        <div class="small text-muted">Weekly Offs (WO) Taken this Month</div>
-                                        <h3 class="fw-bold mb-0 text-brand"><span id="leave-balance-wo">0</span> / 4 days</h3>
+                            <div class="card p-3 mb-3 border-0 shadow-sm">
+                                <div class="row g-2 text-start">
+                                    <div class="col-sm-4">
+                                        <small class="text-muted d-block">Employee ID & Name</small>
+                                        <strong id="audit-emp-name-id">--</strong>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <small class="text-muted d-block">Roster Branch</small>
+                                        <strong id="audit-emp-branch">--</strong>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <small class="text-muted d-block">Department & Designation</small>
+                                        <strong id="audit-emp-dept-desig">--</strong>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <h6 class="fw-bold border-bottom pb-2">Recent Filings</h6>
-                            <div id="leave-history-list" style="max-height: 280px; overflow-y: auto;">
-                                <!-- JS Loaded -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- View: Holidays -->
-            <div id="view-holidays" class="employee-view" style="display: none;">
-                <div class="row justify-content-center">
-                    <div class="col-md-6">
-                        <div class="glass-card p-4">
-                            <h4 class="fw-bold text-brand mb-4 text-center"><i class="fa-solid fa-calendar-day"></i> Dealership Holiday Schedule</h4>
-                            <div id="holiday-list-container">
-                                <!-- JS Loaded -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- View: Profile -->
-            <div id="view-profile" class="employee-view" style="display: none;">
-                <div class="row g-4">
-                    <div class="col-md-5">
-                        <div class="glass-card p-4">
-                            <div class="text-center mb-4 border-bottom pb-3">
-                                <div class="mx-auto rounded-circle bg-brand flex-center mb-3" style="width: 80px; height: 80px; font-size: 2.2rem;">
-                                    <i class="fa-solid fa-user-tie"></i>
-                                </div>
-                                <h4 class="fw-bold mb-1" id="prof-name">Employee</h4>
-                                <span class="badge bg-secondary" id="prof-id">EMP--</span>
-                            </div>
-                            
-                            <div class="d-flex flex-column gap-3 text-start">
-                                <div class="border-bottom pb-2">
-                                    <small class="text-muted d-block">Assigned Branch</small>
-                                    <strong id="prof-branch">--</strong>
-                                </div>
-                                <div class="border-bottom pb-2">
-                                    <small class="text-muted d-block">Department</small>
-                                    <strong id="prof-department">--</strong>
-                                </div>
-                                <div class="border-bottom pb-2">
-                                    <small class="text-muted d-block">Designation</small>
-                                    <strong id="prof-designation">--</strong>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Bank Details Card -->
-                        <div class="glass-card p-4 mt-4">
-                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-building-columns"></i> Bank Account Details</h5>
-                            <div class="d-flex flex-column gap-3 text-start">
-                                <div class="border-bottom pb-2">
-                                    <small class="text-muted d-block">Bank Name</small>
-                                    <strong id="prof-bank-name">--</strong>
-                                </div>
-                                <div class="border-bottom pb-2">
-                                    <small class="text-muted d-block">Account Number</small>
-                                    <strong id="prof-bank-acc">--</strong>
-                                </div>
-                                <div class="row g-2">
-                                    <div class="col-6 border-end">
-                                        <small class="text-muted d-block">IFSC Code</small>
-                                        <strong id="prof-bank-ifsc">--</strong>
-                                    </div>
-                                    <div class="col-6 ps-2">
-                                        <small class="text-muted d-block">Branch</small>
-                                        <strong id="prof-bank-branch">--</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-7">
-                        <div class="glass-card p-4">
-                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-shield-halved"></i> Change Security Password</h5>
-                            <form id="form-change-password">
-                                <div class="mb-3">
-                                    <label class="form-label small fw-semibold">Current Access Password</label>
-                                    <input type="password" id="prof-curr-pass" class="form-input-brand" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label small fw-semibold">New Security Password</label>
-                                    <input type="password" id="prof-new-pass" class="form-input-brand" required>
-                                </div>
-                                <div class="mb-4">
-                                    <label class="form-label small fw-semibold">Confirm New Password</label>
-                                    <input type="password" id="prof-conf-pass" class="form-input-brand" required>
-                                </div>
-                                <button type="submit" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-key"></i> Update Security Credentials</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- View: Manager Approvals -->
-            <div id="view-approvals" class="employee-view" style="display: none;">
-                <div class="row justify-content-center">
-                    <div class="col-md-10">
-                        <div class="glass-card p-4">
-                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-envelope-open-text"></i> Subordinate Pending Weekly Offs</h5>
                             <div class="table-responsive">
                                 <table class="custom-table table-sm">
                                     <thead>
                                         <tr>
-                                            <th>Employee</th>
-                                            <th>Dates</th>
-                                            <th>Duration</th>
-                                            <th>Reason</th>
-                                            <th>Actions</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Clock In</th>
+                                            <th>Clock Out</th>
+                                            <th>Hours</th>
+                                            <th>Remarks & Geofence Alerts</th>
+                                            <th>Quick Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="manager-approvals-table-body">
+                                    <tbody id="audit-emp-rows">
                                         <!-- JS Loaded -->
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Sub-view 3: Day Punch Audit Verification -->
+                    <div id="matrix-punch-detail-subview" style="display: none;">
+                        <div class="glass-card p-4">
+                            <!-- Header -->
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="fw-bold text-brand m-0"><i class="fa-solid fa-user-shield"></i> Day Punch Audit Verification</h5>
+                                <button class="btn btn-sm btn-brand-secondary" onclick="AdminApp.backFromPunchAudit()"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                            </div>
+
+                            <!-- Employee & Date header -->
+                            <div class="text-center mb-4">
+                                <h4 class="fw-bold text-brand mb-1" id="day-audit-emp-name">--</h4>
+                                <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                                    <span class="badge bg-secondary px-3 py-2" id="day-audit-date">--</span>
+                                    <span class="badge fs-6 px-3 py-2" id="day-audit-status">--</span>
+                                </div>
+                            </div>
+
+                            <!-- Key stats bar -->
+                            <div class="row g-3 mb-4 text-center">
+                                <div class="col-4">
+                                    <div class="glass-card p-3">
+                                        <div class="text-muted small">Clock In</div>
+                                        <div class="fw-bold fs-5 text-success" id="day-audit-in-time">--</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="glass-card p-3">
+                                        <div class="text-muted small">Clock Out</div>
+                                        <div class="fw-bold fs-5 text-brand" id="day-audit-out-time">--</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="glass-card p-3">
+                                        <div class="text-muted small">Working Hours</div>
+                                        <div class="fw-bold fs-5 text-info" id="day-audit-working-hours">--</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Verification & Actions Row -->
+                            <div class="row g-4 mb-4">
+                                <!-- Left side: Dual Selfie -->
+                                <div class="col-md-7">
+                                    <div class="row g-3 h-100">
+                                        <!-- Punch IN -->
+                                        <div class="col-sm-6">
+                                            <div class="glass-card p-3 h-100">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="fw-bold text-success m-0"><i class="fa-solid fa-arrow-right-to-bracket"></i> IN</h6>
+                                                    <a id="day-audit-map-in" href="#" target="_blank" class="btn btn-sm btn-outline-success d-none py-0 px-1">
+                                                        <i class="fa-solid fa-location-dot"></i> Map
+                                                    </a>
+                                                </div>
+                                                <div class="rounded overflow-hidden border mb-2" style="height: 180px; background: #1a1a2e;" id="day-audit-selfie-in">
+                                                    <div class="d-flex align-items-center justify-content-center h-100 text-muted flex-column">
+                                                        <i class="fa-solid fa-image-portrait fa-2x mb-2 opacity-50"></i>
+                                                        <span class="small">No In Selfie</span>
+                                                    </div>
+                                                </div>
+                                                <div class="small text-muted" style="font-size: 0.75rem;">
+                                                    <i class="fa-solid fa-location-crosshairs text-success"></i>
+                                                    <span id="day-audit-dist-in">Distance: --</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Punch OUT -->
+                                        <div class="col-sm-6">
+                                            <div class="glass-card p-3 h-100">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <h6 class="fw-bold text-brand m-0"><i class="fa-solid fa-arrow-right-from-bracket"></i> OUT</h6>
+                                                    <a id="day-audit-map-out" href="#" target="_blank" class="btn btn-sm btn-outline-danger d-none py-0 px-1">
+                                                        <i class="fa-solid fa-location-dot"></i> Map
+                                                    </a>
+                                                </div>
+                                                <div class="rounded overflow-hidden border mb-2" style="height: 180px; background: #1a1a2e;" id="day-audit-selfie-out">
+                                                    <div class="d-flex align-items-center justify-content-center h-100 text-muted flex-column">
+                                                        <i class="fa-solid fa-image-portrait fa-2x mb-2 opacity-50"></i>
+                                                        <span class="small">No Out Selfie</span>
+                                                    </div>
+                                                </div>
+                                                <div class="small text-muted" style="font-size: 0.75rem;">
+                                                    <i class="fa-solid fa-location-crosshairs text-brand"></i>
+                                                    <span id="day-audit-dist-out">Distance: --</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right side: Remarks + Actions -->
+                                <div class="col-md-5">
+                                    <div class="d-flex flex-column h-100 gap-3">
+                                        <!-- Remarks / Audit Trail -->
+                                        <div class="glass-card p-3 flex-grow-1">
+                                            <div class="text-muted small mb-2"><i class="fa-solid fa-triangle-exclamation"></i> Remarks / Audit Trail:</div>
+                                            <div id="day-audit-remarks" class="fw-semibold">--</div>
+                                        </div>
+
+                                        <!-- Admin Actions (Status Override) -->
+                                        <div class="glass-card p-3 border border-warning border-opacity-50">
+                                            <h6 class="fw-bold text-warning mb-3"><i class="fa-solid fa-user-pen"></i> Override Status</h6>
+                                            <div class="d-flex flex-column gap-2">
+                                                <label class="col-form-label text-muted small pb-0">New Status:</label>
+                                                <select class="form-select bg-dark text-white border-secondary w-100" id="day-audit-status-edit">
+                                                    <option value="Present">Present</option>
+                                                    <option value="Absent">Absent</option>
+                                                    <option value="Half Day">Half Day</option>
+                                                    <option value="Late">Late</option>
+                                                    <option value="Manual Punch">Manual Punch</option>
+                                                    <option value="Weekly Off">Weekly Off</option>
+                                                </select>
+                                                <button class="btn btn-warning w-100 mt-2" onclick="AdminApp.updateAuditStatus()" id="btn-audit-update"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-            </div>
 
-        </main>
+                <!-- Tab: Employees -->
+                <div id="view-employees" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <div class="table-header-toolbar">
+                            <div class="search-input-wrapper">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="emp-search" class="form-input-brand" placeholder="Search employee by ID/name...">
+                            </div>
+                            <button id="btn-add-employee" class="btn btn-brand-primary"><i class="fa-solid fa-user-plus"></i> Add Employee</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee ID</th>
+                                        <th>Name</th>
+                                        <th>Branch</th>
+                                        <th>Department</th>
+                                        <th>Designation</th>
+                                        <th>Reporting Manager</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employee-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
-        <!-- Bottom Mobile-first Navigation Bar -->
-        <nav class="bottom-nav-bar">
-            <a href="#" class="bottom-nav-link active" data-view="dashboard" onclick="EmployeeApp.switchView('dashboard')">
-                <i class="fa-solid fa-house"></i>
-                <span>Home</span>
-            </a>
-            <a href="#" class="bottom-nav-link" data-view="punch" onclick="EmployeeApp.switchView('punch')">
-                <i class="fa-solid fa-camera"></i>
-                <span>Punch</span>
-            </a>
-            <a href="#" class="bottom-nav-link" data-view="history" onclick="EmployeeApp.switchView('history')">
-                <i class="fa-solid fa-calendar-check"></i>
-                <span>History</span>
-            </a>
-            <a href="#" class="bottom-nav-link" data-view="leave" onclick="EmployeeApp.switchView('leave')">
-                <i class="fa-solid fa-business-time"></i>
-                <span>WO Request</span>
-            </a>
-            <a href="#" class="bottom-nav-link" data-view="approvals" id="nav-manager-approvals" onclick="EmployeeApp.switchView('approvals')" style="display: none;">
-                <i class="fa-solid fa-clipboard-check"></i>
-                <span>Approvals</span>
-            </a>
-            <a href="#" class="bottom-nav-link" data-view="profile" onclick="EmployeeApp.switchView('profile')">
-                <i class="fa-solid fa-user"></i>
-                <span>Profile</span>
-            </a>
-        </nav>
+                <!-- Tab: Attendance Logs -->
+                <div id="view-attendance" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <div class="table-header-toolbar">
+                            <h5 class="fw-bold m-0"><i class="fa-solid fa-list-check text-brand"></i> Punch logs registry</h5>
+                            <button class="btn btn-brand-secondary btn-sm" onclick="AdminApp.loadAttendanceLedger()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+                        </div>
+                        
+                        <!-- Multi-filter bar -->
+                        <div class="row g-2 mb-3 p-3 rounded" style="background: rgba(128,128,128,0.04); border: 1px solid var(--light-border);">
+                            <div class="col-md-3 col-sm-12">
+                                <label class="form-label small fw-semibold mb-1">Search Employee</label>
+                                <input type="text" id="filter-att-emp" class="form-input-brand py-1 px-2 small" placeholder="ID or Name..." oninput="AdminApp.filterAttendanceTable()">
+                            </div>
+                            <div class="col-md-2 col-sm-6">
+                                <label class="form-label small fw-semibold mb-1">Start Date</label>
+                                <input type="date" id="filter-att-start" class="form-input-brand py-1 px-2 small" onchange="AdminApp.filterAttendanceTable()">
+                            </div>
+                            <div class="col-md-2 col-sm-6">
+                                <label class="form-label small fw-semibold mb-1">End Date</label>
+                                <input type="date" id="filter-att-end" class="form-input-brand py-1 px-2 small" onchange="AdminApp.filterAttendanceTable()">
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <label class="form-label small fw-semibold mb-1">Status</label>
+                                <select id="filter-att-status" class="form-input-brand py-1 px-2 small" onchange="AdminApp.filterAttendanceTable()">
+                                    <option value="">All Statuses</option>
+                                    <option value="Present">Present</option>
+                                    <option value="Location Mismatch">Location Mismatch</option>
+                                    <option value="Absent">Absent / Incomplete</option>
+                                    <option value="In Progress">In Progress</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 col-sm-6 d-flex align-items-end">
+                                <button class="btn btn-brand-secondary btn-sm w-100 py-1" onclick="AdminApp.resetAttendanceFilters()"><i class="fa-solid fa-filter-circle-xmark"></i> Clear</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee ID</th>
+                                        <th>Date</th>
+                                        <th>Punch In</th>
+                                        <th>Punch Out</th>
+                                        <th>GPS In</th>
+                                        <th>GPS Out</th>
+                                        <th>Selfie In</th>
+                                        <th>Selfie Out</th>
+                                        <th>Proximity Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendance-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Branch Settings -->
+                <div id="view-branches" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <div class="table-header-toolbar">
+                            <div class="search-input-wrapper">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="branch-search" class="form-input-brand" placeholder="Search branch...">
+                            </div>
+                            <button id="btn-add-branch" class="btn btn-brand-primary"><i class="fa-solid fa-plus"></i> Add Branch Config</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Branch ID</th>
+                                        <th>Branch Name</th>
+                                        <th>Address</th>
+                                        <th>Coordinates (Lat/Lng)</th>
+                                        <th>Radius</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="branch-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Leave Requests Review -->
+                <div id="view-leave" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-envelope-open-text text-brand"></i> Pending Leave Applications</h5>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee ID</th>
+                                        <th>Name</th>
+                                        <th>Category</th>
+                                        <th>Dates</th>
+                                        <th>Days</th>
+                                        <th>Reason</th>
+                                        <th>Proof Doc</th>
+                                        <th>Review Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leave-requests-table-body">
+                                    <!-- JS Loaded -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Holiday Settings -->
+                <div id="view-holiday" class="admin-tab-view" style="display: none;">
+                    <div class="row g-4">
+                        <div class="col-md-5">
+                            <div class="glass-card p-4">
+                                <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-calendar-plus text-brand"></i> Add Holiday Config</h5>
+                                <form id="form-add-holiday">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold">Holiday Title</label>
+                                        <input type="text" id="holiday-name" class="form-input-brand" placeholder="e.g. Independence Day" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold">Calendar Date</label>
+                                        <input type="date" id="holiday-date" class="form-input-brand" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="form-label small fw-semibold">Holiday Category</label>
+                                        <select id="holiday-type" class="form-input-brand">
+                                            <option value="National">National Holiday</option>
+                                            <option value="Festival">Festival Holiday</option>
+                                            <option value="State">State Holiday</option>
+                                            <option value="Custom">Custom Holiday</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-save"></i> Save Holiday</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="col-md-7">
+                            <div class="table-custom-card h-100">
+                                <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-list-ul text-brand"></i> Configured Holiday events</h5>
+                                <div class="table-responsive">
+                                    <table class="custom-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Date</th>
+                                                <th>Holiday Title</th>
+                                                <th>Category</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="holidays-table-body">
+                                            <!-- JS Loaded -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Correction Requests -->
+                <div id="view-corrections" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-clock-rotate-left text-brand"></i> Missed Punch Correction Requests</h5>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Request ID</th>
+                                        <th>Employee ID</th>
+                                        <th>Name</th>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Req In</th>
+                                        <th>Req Out</th>
+                                        <th>Reason</th>
+                                        <th>Attachment</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corrections-table-body">
+                                    <tr><td colspan="11" class="text-center py-4 text-muted">No pending missed punch requests.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Reports Terminal -->
+                <div id="view-reports" class="admin-tab-view" style="display: none;">
+                    <div class="table-custom-card">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-file-invoice text-brand"></i> Reports Generator Engine</h5>
+                        <div class="row g-3 align-items-end mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Report Query Category</label>
+                                <select id="report-select-type" class="form-input-brand">
+                                    <option value="Daily">Daily Summary Logs</option>
+                                    <option value="Monthly">Monthly Counts Summary</option>
+                                    <option value="Matrix">Monthly Registry Grid (Matrix)</option>
+                                    <option value="Comprehensive">Comprehensive Monthly Log (Multi-Row)</option>
+                                    <option value="Late">Late Clock-In list</option>
+                                    <option value="GPSMismatch">GPS Geofence Mismatch list</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Target Date</label>
+                                <input type="date" id="report-select-date" class="form-input-brand">
+                            </div>
+                            <div class="col-md-4">
+                                <button id="btn-generate-report" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-gears"></i> Compile Report</button>
+                            </div>
+                        </div>
+
+                        <!-- Report compile output -->
+                        <div class="border-top pt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0">Compiled Report Result</h6>
+                                <div class="d-flex gap-2">
+                                    <button id="btn-print-report" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-print"></i> Print</button>
+                                    <button id="btn-csv-report" class="btn btn-sm btn-outline-success"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+                                </div>
+                            </div>
+                            <div class="table-responsive" style="max-height: 400px;">
+                                <table id="report-results-table" class="custom-table border">
+                                    <thead id="report-table-headers">
+                                        <tr><th>Headers</th></tr>
+                                    </thead>
+                                    <tbody id="report-table-rows">
+                                        <tr><td class="text-center py-4 text-muted">Generate parameters above to stream data grids.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: System Settings -->
+                <div id="view-settings" class="admin-tab-view" style="display: none;">
+                    <div class="glass-card p-4" style="max-width: 600px;">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-gears text-brand"></i> Gateway Integration Parameters</h5>
+                        
+                        <form id="form-settings-gateway" class="mb-4">
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Google Apps Script Web App Deployment URL</label>
+                                <input type="url" id="settings-webapp-url" class="form-input-brand" placeholder="https://script.google.com/macros/s/.../exec" required>
+                                <div class="form-text text-muted">Configure this to bind your client-side framework page directly to the Google Sheets backend.</div>
+                            </div>
+                            <button type="submit" class="btn btn-brand-primary"><i class="fa-solid fa-circle-check"></i> Save Parameters</button>
+                        </form>
+                    </div>
+
+                    <!-- Data Maintenance Purging Card -->
+                    <div class="glass-card p-4 mt-4" style="max-width: 600px;">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-trash-can text-danger"></i> Database Logs Purging Manager</h5>
+                        <div class="alert alert-warning small mb-3">
+                            <i class="fa-solid fa-triangle-exclamation text-danger me-1"></i> <strong>Caution:</strong> Deleting historical logs is permanent and cannot be undone. Make sure to back up your Google Spreadsheet before executing a purge.
+                        </div>
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold">Purge logs older than</label>
+                                <select id="purge-months-select" class="form-input-brand">
+                                    <option value="3">3 Months (Recommended)</option>
+                                    <option value="6">6 Months</option>
+                                    <option value="12">12 Months (1 Year)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <button id="btn-purge-database" class="btn btn-brand-primary w-100 py-2 bg-danger border-0"><i class="fa-solid fa-dumpster-fire"></i> Purge Archive Logs</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Profile Settings -->
+                <div id="view-profile" class="admin-tab-view" style="display: none;">
+                    <div class="glass-card p-4" style="max-width: 500px;">
+                        <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-user-shield text-brand"></i> Administrator Credentials</h5>
+                        <div class="p-3 bg-light rounded border mb-3">
+                            <small class="text-muted d-block">Logged Username</small>
+                            <strong id="admin-prof-username">Admin</strong>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
     </div>
 
-    <!-- Modal: Missed Punch Correction Request -->
-    <div class="modal fade" id="modal-punch-correction" tabindex="-1" aria-hidden="true">
+    <!-- Modals Wizard Layouts -->
+
+    <!-- Modal: Employee Wizard CRUD -->
+    <div class="modal fade" id="modal-employee-wizard" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content glass-card" style="border: 1px solid var(--dark-border); background: var(--dark-panel); color: var(--dark-text);">
-                <div class="modal-header border-bottom border-secondary">
-                    <h5 class="modal-title fw-bold text-brand"><i class="fa-solid fa-clock-rotate-left"></i> Missed Punch Correction</h5>
+            <div class="modal-content border-0 overflow-hidden" style="border-radius: var(--radius-md);">
+                <div class="modal-header bg-brand text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold" id="modal-emp-title">Roster Wizard</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="form-punch-correction" onsubmit="EmployeeApp.submitCorrectionRequest(event)">
-                    <div class="modal-body">
+                <form id="form-employee-mut">
+                    <div class="modal-body p-4 bg-light">
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold">Target Missed Date</label>
-                            <input type="date" id="corr-date" class="form-input-brand" required>
+                            <label class="form-label small fw-semibold">Employee ID</label>
+                            <input type="text" id="mut-emp-id" class="form-input-brand" placeholder="e.g. EMP001" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold">Correction Type</label>
-                            <select id="corr-type" class="form-input-brand" onchange="EmployeeApp.toggleCorrectionInputs()">
-                                <option value="In Only">Punch In Only</option>
-                                <option value="Out Only">Punch Out Only</option>
-                                <option value="Both">Both In & Out</option>
+                            <label class="form-label small fw-semibold">Full Name</label>
+                            <input type="text" id="mut-emp-name" class="form-input-brand" placeholder="Enter name" required>
+                        </div>
+                        <div id="modal-emp-pass-wrapper" class="mb-3">
+                            <label class="form-label small fw-semibold">Security Password</label>
+                            <input type="password" id="mut-emp-pass" class="form-input-brand" placeholder="Password for login">
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Mobile Number</label>
+                                <input type="tel" id="mut-emp-mobile" class="form-input-brand" placeholder="Mobile">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Email ID</label>
+                                <input type="email" id="mut-emp-email" class="form-input-brand" placeholder="Email">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Assigned Branch Geofence</label>
+                            <select id="mut-emp-branch" class="form-input-brand" required>
+                                <!-- Populated dynamically -->
                             </select>
                         </div>
                         <div class="row g-2 mb-3">
-                            <div class="col-6" id="corr-in-wrapper">
-                                <label class="form-label small fw-semibold">Requested Punch-In Time</label>
-                                <input type="time" id="corr-time-in" class="form-input-brand" required>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Department</label>
+                                <input type="text" id="mut-emp-dept" class="form-input-brand" placeholder="e.g. Sales">
                             </div>
-                            <div class="col-6" id="corr-out-wrapper" style="display: none;">
-                                <label class="form-label small fw-semibold">Requested Punch-Out Time</label>
-                                <input type="time" id="corr-time-out" class="form-input-brand">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Designation</label>
+                                <input type="text" id="mut-emp-desig" class="form-input-brand" placeholder="e.g. Executive">
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold">Reason Statement</label>
-                            <textarea id="corr-reason" class="form-input-brand" rows="3" placeholder="Explain the reason for the missing punch..." required></textarea>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Joining Date</label>
+                                <input type="date" id="mut-emp-joining" class="form-input-brand">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Roster status</label>
+                                <select id="mut-emp-status" class="form-input-brand">
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold">Supervisor Recommendation / Proof (Optional)</label>
-                            <input type="file" id="corr-attachment" class="form-control bg-dark border-secondary text-white small" accept="image/*,application/pdf">
-                            <small class="text-muted mt-1 d-block" style="font-size: 0.72rem;">Supported formats: images, PDF (Max 2MB)</small>
+                        
+                        <!-- Designate as Reporting Manager Checkbox -->
+                        <div class="form-check mt-3 mb-1">
+                            <input class="form-check-input" type="checkbox" id="mut-emp-ismanager">
+                            <label class="form-check-label small fw-semibold text-danger" for="mut-emp-ismanager">
+                                <i class="fa-solid fa-user-shield me-1"></i> Designate as Reporting Manager (Can approve leaves/WOs)
+                            </label>
+                        </div>
+                        
+                        <!-- Reporting Manager Selection -->
+                        <div class="mb-3 mt-3">
+                            <label class="form-label small fw-semibold">Reporting Manager(s)</label>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start d-flex justify-content-between align-items-center form-input-brand" type="button" id="dropdownMenuManagers" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="padding: 10px; background: white;">
+                                    <span id="selected-managers-label">Select Managers...</span>
+                                </button>
+                                <ul class="dropdown-menu w-100 p-3 shadow" aria-labelledby="dropdownMenuManagers" id="mut-emp-manager-list" style="max-height: 200px; overflow-y: auto;">
+                                    <!-- Checkboxes populated dynamically -->
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Collapsible Bank Details Section -->
+                        <div class="card border-0 mt-3 shadow-sm rounded">
+                            <div class="card-header bg-white border-0 py-2" id="headingBank" style="padding: 0;">
+                                <h6 class="mb-0">
+                                    <button class="btn btn-link text-decoration-none text-dark fw-bold w-100 text-start d-flex justify-content-between align-items-center py-2 px-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBank" aria-expanded="false" aria-controls="collapseBank">
+                                        <span><i class="fa-solid fa-building-columns text-brand me-2"></i> Employee Bank Details</span>
+                                        <i class="fa-solid fa-chevron-down small"></i>
+                                    </button>
+                                </h6>
+                            </div>
+                            <div id="collapseBank" class="collapse" aria-labelledby="headingBank">
+                                <div class="card-body bg-white p-3 border-top">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold">Bank Name</label>
+                                        <input type="text" id="mut-emp-bank-name" class="form-input-brand" placeholder="e.g. HDFC Bank">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold">Account Number</label>
+                                        <input type="text" id="mut-emp-bank-acc" class="form-input-brand" placeholder="Enter Account Number">
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label small fw-semibold">IFSC Code</label>
+                                            <input type="text" id="mut-emp-bank-ifsc" class="form-input-brand" placeholder="IFSC Code">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small fw-semibold">Bank Branch</label>
+                                            <input type="text" id="mut-emp-bank-branch" class="form-input-brand" placeholder="Branch Name">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="modal-footer border-top border-secondary">
-                        <button type="button" class="btn btn-secondary py-2" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-brand-primary py-2"><i class="fa-solid fa-paper-plane"></i> File Request</button>
+                    <div class="modal-footer border-0 p-3 bg-white justify-content-end gap-2">
+                        <button type="button" class="btn btn-brand-secondary py-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-brand-primary py-2"><i class="fa-solid fa-floppy-disk"></i> Commit Record</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- Modal: Attendance Edit Wizard -->
+    <div class="modal fade" id="modal-attendance-edit" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 overflow-hidden" style="border-radius: var(--radius-md);">
+                <div class="modal-header bg-brand text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold">Modify Attendance Record</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="form-attendance-edit">
+                    <input type="hidden" id="edit-att-id">
+                    <div class="modal-body p-4 bg-light">
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Employee ID</label>
+                                <input type="text" id="edit-att-empid" class="form-input-brand" readonly>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Date</label>
+                                <input type="text" id="edit-att-date" class="form-input-brand" readonly>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Punch In Time</label>
+                                <input type="time" id="edit-att-in" class="form-input-brand">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Punch Out Time</label>
+                                <input type="time" id="edit-att-out" class="form-input-brand">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Attendance Status</label>
+                            <select id="edit-att-status" class="form-input-brand" required>
+                                <option value="Present">Present</option>
+                                <option value="Absent">Absent</option>
+                                <option value="Late Arrival">Late Arrival</option>
+                                <option value="Early Exit">Early Exit</option>
+                                <option value="Weekly Off">Weekly Off (WO)</option>
+                                <option value="Leave">On Leave</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Remarks & Audit Notes</label>
+                            <textarea id="edit-att-remarks" class="form-input-brand" rows="2" placeholder="e.g. Manually corrected by Admin"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-3 bg-white justify-content-end gap-2">
+                        <button type="button" class="btn btn-brand-secondary py-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-brand-primary py-2"><i class="fa-solid fa-save"></i> Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Branch Settings Wizard -->
+    <div class="modal fade" id="modal-branch-wizard" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 overflow-hidden" style="border-radius: var(--radius-md);">
+                <div class="modal-header bg-brand text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold" id="modal-branch-title">Geofence parameters</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="form-branch-mut">
+                    <div class="modal-body p-4 bg-light" style="max-height: 480px; overflow-y: auto;">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Branch Unique ID</label>
+                            <input type="text" id="mut-branch-id" class="form-input-brand" placeholder="e.g. BR-01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Branch Location Name</label>
+                            <input type="text" id="mut-branch-name" class="form-input-brand" placeholder="e.g. Bhubaneswar Showroom" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Address Statement</label>
+                            <input type="text" id="mut-branch-address" class="form-input-brand" placeholder="Street address details">
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Latitude Coordinate</label>
+                                <input type="number" step="any" id="mut-branch-lat" class="form-input-brand" placeholder="e.g. 20.3534" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Longitude Coordinate</label>
+                                <input type="number" step="any" id="mut-branch-lng" class="form-input-brand" placeholder="e.g. 85.8264" required>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Radius bounds (meters)</label>
+                                <input type="number" id="mut-branch-radius" class="form-input-brand" placeholder="e.g. 100" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Grace threshold (mins)</label>
+                                <input type="number" id="mut-branch-grace" class="form-input-brand" placeholder="e.g. 15">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Shift Start In (HH:mm)</label>
+                                <input type="text" id="mut-branch-start" class="form-input-brand" placeholder="09:30" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Shift End Out (HH:mm)</label>
+                                <input type="text" id="mut-branch-end" class="form-input-brand" placeholder="18:30" required>
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Half Day time (HH:mm)</label>
+                                <input type="text" id="mut-branch-halfday" class="form-input-brand" placeholder="14:00">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Overtime start (HH:mm)</label>
+                                <input type="text" id="mut-branch-overtime" class="form-input-brand" placeholder="19:00">
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Weekly off day</label>
+                                <select id="mut-branch-off" class="form-input-brand">
+                                    <option value="Sunday">Sunday</option>
+                                    <option value="Monday">Monday</option>
+                                    <option value="Saturday">Saturday</option>
+                                    <option value="None">None</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Status</label>
+                                <select id="mut-branch-status" class="form-input-brand">
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-3 bg-white justify-content-end gap-2">
+                        <button type="button" class="btn btn-brand-secondary py-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-brand-primary py-2"><i class="fa-solid fa-floppy-disk"></i> Commit Geofence</button>
+                    </div>
+                </form>
+            </div>
+    </div>
+
+
 
     <!-- SweetAlert2 Dependency -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -731,25 +1013,24 @@
     <script src="js/utils.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/employee.js"></script>
+    <script src="js/admin.js"></script>
     
     <!-- Login router gate controller -->
     <script>
-        document.getElementById("form-login-gate").addEventListener("submit", async (e) => {
+        document.getElementById("form-admin-login").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const user = document.getElementById("login-uid").value;
-            const pass = document.getElementById("login-pass").value;
-            const remember = document.getElementById("login-remember").checked;
+            const user = document.getElementById("admin-uid").value;
+            const pass = document.getElementById("admin-pass").value;
             
-            const res = await Auth.login(user, pass, remember, "Employee");
+            const res = await Auth.login(user, pass, false, "Admin");
             if (res.success) {
-                if (res.role === "Admin") {
-                    window.location.href = "admin.html";
+                if (res.role === "Employee") {
+                    window.location.href = "index.html";
                 } else {
-                    // Success: hide login and boot employee layout
-                    document.getElementById("view-login").style.display = "none";
-                    document.getElementById("employee-panel-layout").style.display = "block";
-                    EmployeeApp.init();
+                    // Success: hide login and boot admin dashboard layout
+                    document.getElementById("view-admin-login").style.display = "none";
+                    document.getElementById("admin-panel-layout").style.display = "flex";
+                    AdminApp.init();
                 }
             } else {
                 Swal.fire({
@@ -761,73 +1042,17 @@
             }
         });
 
-        // Autoload remembered inputs or bypass login if active session exists
         document.addEventListener("DOMContentLoaded", () => {
-            if (localStorage.getItem("EAMS_remembered_user")) {
-                document.getElementById("login-uid").value = localStorage.getItem("EAMS_remembered_user");
-                document.getElementById("login-remember").checked = true;
-            }
-            
             if (Auth.isLoggedIn()) {
-                if (Auth.getRole() === "Admin") {
-                    window.location.href = "admin.html";
-                } else if (Auth.getRole() === "Employee") {
-                    document.getElementById("view-login").style.display = "none";
-                    document.getElementById("employee-panel-layout").style.display = "block";
-                    EmployeeApp.init();
+                if (Auth.getRole() === "Employee") {
+                    window.location.href = "index.html";
+                } else if (Auth.getRole() === "Admin") {
+                    document.getElementById("view-admin-login").style.display = "none";
+                    document.getElementById("admin-panel-layout").style.display = "flex";
+                    AdminApp.init();
                 }
             }
         });
-
-        // Screen-capture security interceptor keys listener
-        document.addEventListener("keyup", (e) => {
-            if (e.key === "PrintScreen") {
-                navigator.clipboard.writeText("");
-                Swal.fire({
-                    icon: "warning",
-                    title: "Security Notice",
-                    text: "Screenshots are restricted on this portal for data privacy compliance.",
-                    confirmButtonColor: "#E4002B"
-                });
-            }
-        });
-        
-        document.addEventListener("keydown", (e) => {
-            // Block Ctrl+P (Print), Ctrl+S (Save Page), and Ctrl+C (Copy)
-            if ((e.ctrlKey && e.key === 'p') || (e.ctrlKey && e.key === 's') || (e.ctrlKey && e.key === 'c')) {
-                e.preventDefault();
-                Swal.fire({
-                    icon: "warning",
-                    title: "Action Restricted",
-                    text: "Exporting or copy-pasting data from this portal is blocked.",
-                    confirmButtonColor: "#E4002B"
-                });
-            }
-        });
-
-        // Register Service Worker for PWA compliance with auto-update listener
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(reg => {
-                        console.log('EAMS Service Worker Registered!', reg.scope);
-                        reg.onupdatefound = () => {
-                            const installingWorker = reg.installing;
-                            if (installingWorker) {
-                                installingWorker.onstatechange = () => {
-                                    if (installingWorker.state === 'installed') {
-                                        if (navigator.serviceWorker.controller) {
-                                            console.log('New service worker update detected. Reloading page...');
-                                            window.location.reload();
-                                        }
-                                    }
-                                };
-                            }
-                        };
-                    })
-                    .catch(err => console.error('Service Worker registration failed:', err));
-            });
-        }
     </script>
 </body>
 </html>
