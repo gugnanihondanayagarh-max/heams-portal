@@ -1875,7 +1875,7 @@ const AdminApp = {
                     let cellStyle = "min-width: 32px; padding: 4px 2px; text-align: center; cursor: pointer;";
                     let textClass = "text-muted small";
                     
-                    let displayVal = val;
+                    let innerHtml = val;
                     if (val === "P") textClass = "text-success fw-bold";
                     else if (val === "A") textClass = "text-danger fw-bold";
                     else if (val === "L") textClass = "text-warning fw-bold";
@@ -1883,11 +1883,20 @@ const AdminApp = {
                     else if (val === "WO") textClass = "text-primary fw-bold";
                     else if (val === "LV") textClass = "text-secondary fw-bold";
                     else if (val === "HL") textClass = "text-dark fw-bold";
-                    else if (val === "ACT_IN") { textClass = "bg-success text-white small"; displayVal = "IN"; }
-                    else if (val === "MISS_OUT") { textClass = "bg-danger text-white small"; displayVal = "OUT"; }
-                    else if (val === "MISS_IN") { textClass = "bg-danger text-white small"; displayVal = "IN"; }
+                    else if (val === "ACT_IN" || val.trim() === "ACT_IN") { 
+                        textClass = ""; 
+                        innerHtml = `<span class="badge bg-success rounded-pill shadow-sm" style="font-size:0.7rem; padding: 4px 8px;">IN</span>`; 
+                    }
+                    else if (val === "MISS_OUT" || val.trim() === "MISS_OUT") { 
+                        textClass = ""; 
+                        innerHtml = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.7rem; padding: 4px 6px;">OUT</span>`; 
+                    }
+                    else if (val === "MISS_IN" || val.trim() === "MISS_IN") { 
+                        textClass = ""; 
+                        innerHtml = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.7rem; padding: 4px 8px;">IN</span>`; 
+                    }
 
-                    bodyHtml += `<td class="${textClass}" style="${cellStyle}" onclick="AdminApp.showDayPunchAudit('${row.EmployeeID}', '${targetVal}-${h.toString().padStart(2, '0')}')">${displayVal}</td>`;
+                    bodyHtml += `<td class="${textClass}" style="${cellStyle}" onclick="AdminApp.showDayPunchAudit('${row.EmployeeID}', '${targetVal}-${h.toString().padStart(2, '0')}')">${innerHtml}</td>`;
                 } else {
                     bodyHtml += `<td style="padding: 8px 12px;">${val}</td>`;
                 }
