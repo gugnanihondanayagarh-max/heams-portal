@@ -686,16 +686,16 @@ const EmployeeApp = {
 
                 if (!hasPunchIn && hasPunchOut) {
                     statusClass = "absent";
-                    statusLetter = "IN";
+                    statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
                     statusTooltip = `Missed Punch In`;
                 } else if (hasPunchIn && !hasPunchOut) {
                     if (isToday) {
                         statusClass = "present";
-                        statusLetter = "IN";
+                        statusLetter = `<span class="badge bg-success rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
                         statusTooltip = `Working (Status: ${status})`;
                     } else {
                         statusClass = "absent";
-                        statusLetter = "OUT";
+                        statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">OUT</span>`;
                         statusTooltip = `Missed Punch Out`;
                     }
                 } else if (status.includes("Present") || status.includes("Completed") || status.includes("Late Arrival") || status.includes("Manual")) {
@@ -740,7 +740,7 @@ const EmployeeApp = {
                     } else {
                         if (isToday) {
                             statusClass = "absent";
-                            statusLetter = "IN";
+                            statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
                             statusTooltip = "Missed Punch In";
                         } else {
                             statusClass = "absent";
