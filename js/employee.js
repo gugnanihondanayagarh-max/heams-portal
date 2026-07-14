@@ -729,8 +729,11 @@ const EmployeeApp = {
                     }
                 } else {
                     // Check if it's a future date
-                    const checkDateTime = new Date(year, month, day, 23, 59, 59);
-                    if (checkDateTime > today) {
+                    const checkDateOnly = new Date(year, month, day);
+                    const todayOnly = new Date();
+                    todayOnly.setHours(0,0,0,0);
+                    
+                    if (checkDateOnly > todayOnly) {
                         statusClass = "empty";
                         statusLetter = "";
                         statusTooltip = "Future Date";
