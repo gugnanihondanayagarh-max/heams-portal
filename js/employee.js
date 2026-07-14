@@ -681,7 +681,20 @@ const EmployeeApp = {
             
             if (log) {
                 const status = log.Status || "Present";
-                if (status.includes("Present") || status.includes("Completed") || status.includes("Late Arrival") || status.includes("Manual")) {
+                const hasPunchIn = log.PunchIn && log.PunchIn.toString().trim() !== "" && log.PunchIn !== "--";
+                const hasPunchOut = log.PunchOut && log.PunchOut.toString().trim() !== "" && log.PunchOut !== "--";
+
+                if (hasPunchIn && !hasPunchOut) {
+                    if (isToday) {
+                        statusClass = "present";
+                        statusLetter = "IN";
+                        statusTooltip = `Working (Status: ${status})`;
+                    } else {
+                        statusClass = "absent";
+                        statusLetter = "OUT";
+                        statusTooltip = `Missed Punch Out`;
+                    }
+                } else if (status.includes("Present") || status.includes("Completed") || status.includes("Late Arrival") || status.includes("Manual")) {
                     statusClass = "present";
                     statusLetter = "P";
                     statusTooltip = `Present (Status: ${status})`;
@@ -719,8 +732,8 @@ const EmployeeApp = {
                         statusTooltip = "Future Date";
                     } else {
                         statusClass = "absent";
-                        statusLetter = "A";
-                        statusTooltip = "Absent";
+                        statusLetter = "IN";
+                        statusTooltip = "Missed Punch In";
                     }
                 }
             }
