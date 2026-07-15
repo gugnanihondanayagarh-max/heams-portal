@@ -745,7 +745,7 @@ const EmployeeApp = {
                         statusLetter = "WO";
                         statusTooltip = "Weekly Off (Approved)";
                     } else {
-                        statusClass = "weekly-off";
+                        statusClass = "absent";
                         statusLetter = "LV";
                         statusTooltip = `${leaveType} Leave (Approved)`;
                     }
