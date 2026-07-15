@@ -1887,11 +1887,19 @@ const AdminApp = {
                     else if (val === "L") textClass = "text-warning fw-bold";
                     else if (val === "H") textClass = "text-info fw-bold";
                     else if (val === "WO") textClass = "text-primary fw-bold";
-                    else if (val === "LV") textClass = "text-danger fw-bold";
+                    else if (val === "LV") textClass = "text-purple fw-bold";
                     else if (val === "HL") textClass = "text-dark fw-bold";
                     else if (val === "ACT_IN" || val.trim() === "ACT_IN") { 
                         textClass = ""; 
                         innerHtml = `<span class="badge bg-success rounded-pill shadow-sm" style="font-size:0.7rem; padding: 4px 8px;">IN</span>`; 
+                    }
+                    else if (val === "LATE_IN" || val.trim() === "LATE_IN") { 
+                        textClass = ""; 
+                        innerHtml = `<span class="badge bg-warning text-dark rounded-pill shadow-sm" style="font-size:0.7rem; padding: 4px 8px;">IN</span>`; 
+                    }
+                    else if (val === "EARLY_P" || val.trim() === "EARLY_P") { 
+                        textClass = ""; 
+                        innerHtml = `<span class="badge bg-warning text-dark rounded-pill shadow-sm" style="font-size:0.7rem; padding: 4px 8px;">P</span>`; 
                     }
                     else if (val === "MISS_OUT" || val.trim() === "MISS_OUT") { 
                         textClass = ""; 
@@ -2033,8 +2041,12 @@ const AdminApp = {
                         
                         try {
                             const parseTime = (timeStr) => {
-                                const parts = timeStr.split(':');
-                                return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+                                if (!timeStr) return 0;
+                                const match = timeStr.toString().match(/(\d{1,2}):(\d{2})/);
+                                if (match) {
+                                    return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+                                }
+                                return 0;
                             };
                             const inMin = parseTime(current.PunchIn);
                             const outMin = parseTime(current.PunchOut);
