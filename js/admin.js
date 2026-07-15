@@ -1504,7 +1504,7 @@ const AdminApp = {
                             else if (val === "L") textClass = "text-warning fw-bold";
                             else if (val === "H") textClass = "text-info fw-bold";
                             else if (val === "WO") textClass = "text-primary fw-bold";
-                            else if (val === "LV") textClass = "text-secondary fw-bold";
+                            else if (val === "LV") textClass = "text-danger fw-bold";
                             else if (val === "HL") textClass = "text-dark fw-bold";
 
                             bodyHtml += `<td class="${textClass}" style="${cellStyle}">${val}</td>`;
@@ -1881,7 +1881,7 @@ const AdminApp = {
                     else if (val === "L") textClass = "text-warning fw-bold";
                     else if (val === "H") textClass = "text-info fw-bold";
                     else if (val === "WO") textClass = "text-primary fw-bold";
-                    else if (val === "LV") textClass = "text-secondary fw-bold";
+                    else if (val === "LV") textClass = "text-danger fw-bold";
                     else if (val === "HL") textClass = "text-dark fw-bold";
                     else if (val === "ACT_IN" || val.trim() === "ACT_IN") { 
                         textClass = ""; 
