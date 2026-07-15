@@ -720,21 +720,25 @@ const EmployeeApp = {
                         statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">OUT</span>`;
                         statusTooltip = `Missed Punch Out`;
                     }
-                } else if (status.includes("Present") || status.includes("Completed") || status.includes("Late Arrival") || status.includes("Manual")) {
+                } else if (status.includes("Late")) {
+                    statusClass = "half";
+                    statusLetter = `<span class="badge bg-warning text-dark rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold;">IN</span>`;
+                    statusTooltip = `Late Arrival`;
+                } else if (status.includes("Half")) {
+                    statusClass = "half";
+                    statusLetter = `<span class="badge bg-warning text-dark rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold;">P</span>`;
+                    statusTooltip = `Half Day / Early Go (Status: ${status})`;
+                } else if (status.includes("Present") || status.includes("Completed") || status.includes("Manual")) {
                     statusClass = "present";
                     statusLetter = "P";
                     statusTooltip = `Present (Status: ${status})`;
-                } else if (status.includes("Half")) {
-                    statusClass = "half";
-                    statusLetter = "H";
-                    statusTooltip = `Half Day (Status: ${status})`;
                 } else if (status.includes("In Progress")) {
                     statusClass = "present";
                     statusLetter = "P";
                     statusTooltip = "In Progress";
                 } else {
                     statusClass = "absent";
-                    statusLetter = "A";
+                    statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
                     statusTooltip = `Absent (Status: ${status})`;
                 }
             } else {
@@ -766,7 +770,7 @@ const EmployeeApp = {
                             statusTooltip = "Missed Punch In";
                         } else {
                             statusClass = "absent";
-                            statusLetter = "A";
+                            statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
                             statusTooltip = "Absent";
                         }
                     }
