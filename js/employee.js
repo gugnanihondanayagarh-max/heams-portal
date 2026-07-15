@@ -714,7 +714,7 @@ const EmployeeApp = {
                     if (isToday) {
                         if (status.includes("Late")) {
                             statusClass = "half";
-                            statusLetter = `<span class="badge bg-warning text-dark rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold;">IN</span>`;
+                            statusLetter = `<span class="badge bg-warning text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.6rem; padding: 0; margin-top:2px; font-weight: bold;">IN</span>`;
                             statusTooltip = `Late Arrival (Working)`;
                         } else {
                             statusClass = "present";
@@ -728,11 +728,11 @@ const EmployeeApp = {
                     }
                 } else if (status.includes("Late")) {
                     statusClass = "half";
-                    statusLetter = `<span class="badge bg-warning text-dark rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold;">IN</span>`;
+                    statusLetter = `<span class="badge bg-warning text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.6rem; padding: 0; margin-top:2px; font-weight: bold;">IN</span>`;
                     statusTooltip = `Late Arrival`;
                 } else if (status.includes("Half")) {
                     statusClass = "half";
-                    statusLetter = `<span class="badge bg-warning text-dark rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold;">P</span>`;
+                    statusLetter = `<span class="badge bg-warning text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.65rem; padding: 0; margin-top:2px; font-weight: bold;">P</span>`;
                     statusTooltip = `Half Day / Early Go (Status: ${status})`;
                 } else if (status.includes("Present") || status.includes("Completed") || status.includes("Manual")) {
                     statusClass = "present";
