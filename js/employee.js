@@ -265,58 +265,45 @@ const EmployeeApp = {
         document.getElementById("gps-distance").innerText = "--";
         
         if (navigator.geolocation) {
-            let bestPos = null;
-            let timeoutId = null;
-            
-            const watchId = navigator.geolocation.watchPosition(
+            // First attempt: High Accuracy
+            navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    if (!bestPos || pos.coords.accuracy < bestPos.coords.accuracy) {
-                        bestPos = pos;
-                    }
-                    // If accuracy is within 40 meters, accept immediately
-                    if (pos.coords.accuracy <= 40) {
-                        navigator.geolocation.clearWatch(watchId);
-                        clearTimeout(timeoutId);
-                        this.handleGPSLock(bestPos);
-                    }
-                },
-                (err) => {
-                    if (err.code === 1) { // PERMISSION_DENIED
-                        navigator.geolocation.clearWatch(watchId);
-                        clearTimeout(timeoutId);
-                        Swal.fire("Permission Denied", "Please allow location access to punch attendance.", "error");
-                    }
-                },
-                { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
-            );
-
-            // Wait up to 12 seconds for the best possible lock
-            timeoutId = setTimeout(() => {
-                navigator.geolocation.clearWatch(watchId);
-                if (bestPos) {
-                    if (bestPos.coords.accuracy > 1500) {
+                    // Check if accuracy is terrible (cell tower fallback)
+                    if (pos.coords.accuracy > 1500) {
                         Swal.fire({
                             title: 'Weak GPS Signal',
-                            text: `Accuracy is low (${Math.round(bestPos.coords.accuracy)}m). We are using cell-tower fallback. Please connect to Wi-Fi next time.`,
-                            icon: 'warning',
-                            toast: true, position: 'top-end', timer: 4000, showConfirmButton: false
+                            text: `Accuracy is low (${Math.round(pos.coords.accuracy)}m). We are using cell-tower fallback. Please step outside for a clear sky view.`,
+                            icon: 'warning', toast: true, position: 'top-end', timer: 4000, showConfirmButton: false
                         });
                     }
-                    this.handleGPSLock(bestPos);
-                } else {
-                    // Absolute fallback if watch fails completely
+                    this.handleGPSLock(pos);
+                },
+                (err) => {
+                    console.warn("High-accuracy GPS failed, falling back to standard...", err);
+                    if (err.code === 1) {
+                        Swal.fire("Permission Denied", "Please allow location access to punch attendance.", "error");
+                        return;
+                    }
+                    // Second attempt: Standard Accuracy Fallback
                     navigator.geolocation.getCurrentPosition(
-                        (fallbackPos) => this.handleGPSLock(fallbackPos),
+                        (fallbackPos) => {
+                            Swal.fire({
+                                title: 'Weak GPS Signal',
+                                text: 'High-accuracy GPS failed. Using mobile network triangulation. Please step near a window.',
+                                icon: 'warning', toast: true, position: 'top-end', timer: 4000, showConfirmButton: false
+                            });
+                            this.handleGPSLock(fallbackPos);
+                        },
                         (fallbackErr) => {
                             document.getElementById("gps-status-badge").className = "geo-status-indicator outside";
                             document.getElementById("gps-status-badge").innerText = "GPS Error";
-                            Swal.fire("GPS Error", "Failed to retrieve location.", "error");
+                            Swal.fire("GPS Error", "Failed to retrieve location completely. Step outside and try again.", "error");
                         },
-                        { enableHighAccuracy: false, timeout: 10000 }
+                        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
                     );
-                }
-            }, 12000);
-
+                },
+                { enableHighAccuracy: true, timeout: 25000, maximumAge: 15000 }
+            );
         } else {
             Swal.fire("GPS Unsupported", "Your browser does not support location services.", "error");
         }
