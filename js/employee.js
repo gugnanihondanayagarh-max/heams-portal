@@ -712,9 +712,15 @@ const EmployeeApp = {
                     statusTooltip = `Missed Punch In`;
                 } else if (hasPunchIn && !hasPunchOut) {
                     if (isToday) {
-                        statusClass = "present";
-                        statusLetter = `<span class="badge bg-success rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
-                        statusTooltip = `Working (Status: ${status})`;
+                        if (status.includes("Late")) {
+                            statusClass = "half";
+                            statusLetter = `<span class="badge bg-warning text-dark rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold;">IN</span>`;
+                            statusTooltip = `Late Arrival (Working)`;
+                        } else {
+                            statusClass = "present";
+                            statusLetter = `<span class="badge bg-success rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
+                            statusTooltip = `Working (Status: ${status})`;
+                        }
                     } else {
                         statusClass = "absent";
                         statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">OUT</span>`;
