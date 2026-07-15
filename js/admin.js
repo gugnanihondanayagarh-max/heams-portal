@@ -2408,7 +2408,7 @@ const AdminApp = {
                 if (this._matrixPunchFromEmployee) {
                     this.showEmployeeMonthAudit(this._currentAuditEmployeeId, this._currentAuditYearMonth);
                 } else {
-                    await this.loadAttendanceMatrix();
+                    await this.loadDashboardMatrix(true);
                 }
             } else {
                 alert("Update failed: " + res.message);
