@@ -1843,6 +1843,12 @@ const AdminApp = {
         }
     },
 
+    // Backward-compatible alias for older UI bundles / cached scripts.
+    // Some clients still call the legacy matrix loader name after updates.
+    async loadAttendanceMatrix(force = false) {
+        return this.loadDashboardMatrix(force);
+    },
+
     renderDashboardMatrixFromCache() {
         const containerHeaders = document.getElementById("dashboard-matrix-headers");
         const containerRows = document.getElementById("dashboard-matrix-rows");
@@ -2169,8 +2175,8 @@ const AdminApp = {
         const driveMatch = s.match(/\/file\/d\/([^/]+)/);
         if (driveMatch) {
             const fileId = driveMatch[1].replace(/\/view.*$/, '').replace(/[?].*$/, '');
-            // Try uc export first (works for public shared files)
-            return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            // Use the thumbnail endpoint because it is more reliable for embedded admin previews.
+            return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
         }
         // Already a direct image URL
         return s;
@@ -2196,7 +2202,7 @@ const AdminApp = {
         if (!box) return;
         const src = this.resolveImageUrl(imageUrl);
         if (src) {
-            box.innerHTML = `<img src="${src}" class="w-100 h-100" style="object-fit:cover; cursor:pointer;" alt="Selfie" onclick="window.open('${src}','_blank')">`;
+            box.innerHTML = `<img src="${src}" class="w-100 h-100" style="object-fit:cover; cursor:pointer;" alt="Selfie" onclick="window.open('${src}','_blank')" onerror="this.onerror=null;this.outerHTML='\x3cdiv class=\"d-flex align-items-center justify-content-center h-100 text-muted flex-column\"\x3e\x3ci class=\"fa-solid fa-image-portrait fa-3x mb-2 opacity-50\"\x3e\x3c/i\x3e\x3cspan class=\"small\"\x3eImage unavailable\x3c/span\x3e\x3c/div\x3e'">`;
         } else {
             box.innerHTML = `<div class="d-flex align-items-center justify-content-center h-100 text-muted flex-column"><i class="fa-solid fa-image-portrait fa-3x mb-2 opacity-50"></i><span class="small">No Selfie</span></div>`;
         }
