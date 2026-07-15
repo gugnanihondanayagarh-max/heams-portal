@@ -2133,7 +2133,8 @@ const AdminApp = {
 
                     // Build select options
                     const sClean = (r.status || "").replace(/\[.*?\]\s*/g, '').replace(/\(.*?$/g, '').trim();
-                    const options = ["Present", "Absent", "Half Day", "Late", "Manual Punch", "Weekly Off"];
+                    let options = ["Present", "Absent", "Half Day", "Late", "Manual Punch", "Weekly Off", "Leave", "On Leave"];
+                    if (sClean && !options.includes(sClean)) options.push(sClean); // Ensure current status is always selectable
                     const selectOptions = options.map(opt => `<option value="${opt}" ${sClean === opt ? 'selected' : ''}>${opt}</option>`).join('');
 
                     return `
