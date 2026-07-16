@@ -217,7 +217,10 @@
         <!-- Top Sticky Header -->
         <header class="brand-navbar">
             <div class="navbar-brand-logo">
-                <svg viewBox="0 0 512 512" style="width: 2rem; height: 2rem; margin-right: 10px;" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h211c-13.8-19.1-22-42.5-22-68 0-61.9 50.1-112 112-112 25.5 0 48.9 8.2 68 22V422.4c0-74.2-60.2-134.4-134.4-134.4z"/><circle cx="400" cy="400" r="112" fill="#4caf50"/><path d="M340 400 l40 40 l80 -80" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                <div id="nav-profile-container" style="width: 2.5rem; height: 2.5rem; margin-right: 10px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: var(--brand-red); color: white;">
+                    <svg id="nav-profile-svg" viewBox="0 0 512 512" style="width: 100%; height: 100%;" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M224 256c70.7 0 128-57.3 128-128S294.7 0 224 0 96 57.3 96 128s57.3 128 128 128zm89.6 32h-16.7c-22.2 10.2-46.9 16-72.9 16s-50.6-5.8-72.9-16h-16.7C60.2 288 0 348.2 0 422.4V464c0 26.5 21.5 48 48 48h211c-13.8-19.1-22-42.5-22-68 0-61.9 50.1-112 112-112 25.5 0 48.9 8.2 68 22V422.4c0-74.2-60.2-134.4-134.4-134.4z"/><circle cx="400" cy="400" r="112" fill="#4caf50"/><path d="M340 400 l40 40 l80 -80" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    <img id="nav-profile-img" src="" class="d-none" style="width: 100%; height: 100%; object-fit: cover;" alt="Profile">
+                </div>
                 <h4 class="brand-title">EAMS</h4>
             </div>
             <div class="d-flex align-items-center gap-3">
@@ -548,8 +551,15 @@
                     <div class="col-md-5">
                         <div class="glass-card p-4">
                             <div class="text-center mb-4 border-bottom pb-3">
-                                <div class="mx-auto rounded-circle bg-brand flex-center mb-3" style="width: 80px; height: 80px; font-size: 2.2rem;">
-                                    <i class="fa-solid fa-user-tie"></i>
+                                <div class="position-relative mx-auto mb-3" style="width: 80px; height: 80px; cursor: pointer;" id="profile-photo-container">
+                                    <div class="rounded-circle bg-brand flex-center w-100 h-100 overflow-hidden shadow-sm" style="font-size: 2.2rem;" id="profile-icon-wrapper">
+                                        <i class="fa-solid fa-user-tie" id="profile-default-icon"></i>
+                                        <img src="" id="profile-photo-img" class="d-none w-100 h-100" style="object-fit: cover;" alt="Profile">
+                                    </div>
+                                    <div class="position-absolute bottom-0 end-0 bg-white rounded-circle shadow-sm flex-center border border-2 border-white" style="width: 26px; height: 26px; font-size: 0.75rem; color: var(--brand-red);">
+                                        <i class="fa-solid fa-camera"></i>
+                                    </div>
+                                    <input type="file" id="profile-photo-input" class="d-none" accept="image/*" capture="user">
                                 </div>
                                 <h4 class="fw-bold mb-1" id="prof-name">Employee</h4>
                                 <span class="badge bg-secondary" id="prof-id">EMP--</span>
@@ -737,7 +747,7 @@
     <script src="js/utils.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/employee.js?v=12"></script>
+    <script src="js/employee.js?v=13"></script>
     
     <!-- Login router gate controller -->
     <script>
