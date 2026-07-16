@@ -151,6 +151,7 @@ const EmployeeApp = {
 
                 // Render Punch Status
                 const punchStateElement = document.getElementById("dash-punch-state");
+                this.todayPunchObj = res.todayPunch || null;
                 if (res.todayPunch) {
                     if (res.todayPunch.PunchIn && !res.todayPunch.PunchOut) {
                         punchStateElement.innerHTML = `<span class="badge bg-success">Punch In: ${res.todayPunch.PunchIn}</span> (Punch Out Required)`;
@@ -473,14 +474,57 @@ const EmployeeApp = {
                 if (lastExit > 0 && localStorage.getItem("EAMS_inside_geofence") === "false") {
                     timeOutside += (Date.now() - lastExit);
                 }
+                
+                let activeMins = 0;
                 const punchInTime = parseInt(localStorage.getItem("EAMS_punch_in_time") || "0");
                 if (punchInTime > 0) {
                     const totalTimeMs = Date.now() - punchInTime;
                     const activeTimeMs = Math.max(0, totalTimeMs - timeOutside);
-                    const activeMins = Math.floor(activeTimeMs / 60000);
+                    activeMins = Math.floor(activeTimeMs / 60000);
+                } else if (this.todayPunchObj && this.todayPunchObj.PunchIn) {
+                    const parseTime = (t) => {
+                        const m = t.toString().match(/(\d{1,2}):(\d{2})/);
+                        return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
+                    };
+                    const now = new Date();
+                    const currentMins = now.getHours() * 60 + now.getMinutes();
+                    activeMins = currentMins - parseTime(this.todayPunchObj.PunchIn);
+                    if (activeMins < 0) activeMins += 24 * 60;
+                }
+
+                if (activeMins > 0) {
                     const activeHrs = Math.floor(activeMins / 60);
                     const remainMins = activeMins % 60;
                     activeTimeStr = `${activeHrs}h ${remainMins}m`;
+
+                    if (this.assignedBranch && this.assignedBranch.OfficeStart && this.assignedBranch.OfficeEnd) {
+                        const parseTime = (t) => {
+                            const m = t.toString().match(/(\d{1,2}):(\d{2})/);
+                            return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
+                        };
+                        const bStart = parseTime(this.assignedBranch.OfficeStart);
+                        const bEnd = parseTime(this.assignedBranch.OfficeEnd);
+                        let reqMins = bEnd - bStart;
+                        if (reqMins <= 0) reqMins = 540;
+                        
+                        const thresholdMins = reqMins * 0.95;
+                        if (activeMins < thresholdMins) {
+                            const remainMinsToThreshold = Math.ceil(thresholdMins - activeMins);
+                            const confirm = await Swal.fire({
+                                title: 'Shift Incomplete!',
+                                html: `Please wait <strong>${remainMinsToThreshold} minutes</strong> to complete your duty hours.<br><br>Punching out now may mark your day as a <strong>Half Day</strong> or <strong>Absent</strong> according to company criteria.<br><br>Are you sure you want to punch out early?`,
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#E4002B',
+                                cancelButtonColor: '#6c757d',
+                                confirmButtonText: 'Yes, Punch Out',
+                                cancelButtonText: 'Wait'
+                            });
+                            if (!confirm.isConfirmed) {
+                                return;
+                            }
+                        }
+                    }
                 }
             }
 
