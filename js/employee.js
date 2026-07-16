@@ -76,6 +76,18 @@ const EmployeeApp = {
             e.preventDefault();
             this.changePassword();
         });
+
+        // Profile Photo Upload
+        const photoContainer = document.getElementById("profile-photo-container");
+        const photoInput = document.getElementById("profile-photo-input");
+        if (photoContainer && photoInput) {
+            photoContainer.addEventListener("click", () => photoInput.click());
+            photoInput.addEventListener("change", (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    this.uploadProfilePhoto(e.target.files[0]);
+                }
+            });
+        }
     },
 
     // Switch active view sections
@@ -129,6 +141,10 @@ const EmployeeApp = {
 
             if (res.status === "Success") {
                 this.assignedBranch = res.branchDetails;
+                
+                if (res.employeeData && res.employeeData.ProfilePhoto) {
+                    this.updateProfilePhotoUI(res.employeeData.ProfilePhoto);
+                }
                 this.attendanceStats = res.stats;
                 
                 // Set stats cards text
@@ -1436,6 +1452,108 @@ const EmployeeApp = {
         document.getElementById("prof-bank-acc").innerText = localStorage.getItem("EAMS_bank_acc") || "Not Provided";
         document.getElementById("prof-bank-ifsc").innerText = localStorage.getItem("EAMS_bank_ifsc") || "Not Provided";
         document.getElementById("prof-bank-branch").innerText = localStorage.getItem("EAMS_bank_branch") || "Not Provided";
+    },
+
+    // Profile Photo Upload and Compression
+    async uploadProfilePhoto(file) {
+        if (!file.type.startsWith("image/")) {
+            Swal.fire("Error", "Please select a valid image file.", "error");
+            return;
+        }
+
+        Swal.fire({
+            title: 'Compressing & Uploading...',
+            text: 'Please wait while your profile picture is updated.',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        try {
+            // Compress image using Canvas
+            const img = new Image();
+            const objectUrl = URL.createObjectURL(file);
+            
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = objectUrl;
+            });
+            URL.revokeObjectURL(objectUrl);
+
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            
+            // Resize logic: max 400x400
+            let width = img.width;
+            let height = img.height;
+            const maxSize = 400;
+            
+            if (width > height) {
+                if (width > maxSize) {
+                    height = Math.round((height *= maxSize / width));
+                    width = maxSize;
+                }
+            } else {
+                if (height > maxSize) {
+                    width = Math.round((width *= maxSize / height));
+                    height = maxSize;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Compress as JPEG (0.7 quality)
+            const base64Image = canvas.toDataURL("image/jpeg", 0.7);
+
+            // Send to backend API
+            const res = await API.call({
+                action: "updateProfilePhoto",
+                employeeId: Auth.getUserId(),
+                imageBlob: base64Image
+            });
+
+            if (res.status === "Success" && res.photoUrl) {
+                // Update local storage data cache
+                const uData = Auth.getUserData();
+                uData.ProfilePhoto = res.photoUrl;
+                localStorage.setItem("EAMS_user", JSON.stringify(uData));
+                
+                // Update UI instantly
+                this.updateProfilePhotoUI(res.photoUrl);
+                
+                Swal.fire("Success", "Profile photo updated successfully!", "success");
+            } else {
+                throw new Error(res.message || "Upload failed");
+            }
+
+        } catch (err) {
+            Swal.fire("Error", err.message || "Failed to upload photo. Please try again.", "error");
+            console.error("Photo upload error:", err);
+        }
+    },
+
+    updateProfilePhotoUI(url) {
+        if (!url || url.trim() === "") return;
+        
+        // Update Nav Bar Icon
+        const navImg = document.getElementById("nav-profile-img");
+        const navSvg = document.getElementById("nav-profile-svg");
+        if (navImg && navSvg) {
+            navImg.src = url;
+            navImg.classList.remove("d-none");
+            navSvg.classList.add("d-none");
+        }
+
+        // Update Profile Tab Icon
+        const profImg = document.getElementById("profile-photo-img");
+        const profIcon = document.getElementById("profile-default-icon");
+        if (profImg && profIcon) {
+            profImg.src = url;
+            profImg.classList.remove("d-none");
+            profIcon.classList.add("d-none");
+        }
     },
 
     // Change profile password
