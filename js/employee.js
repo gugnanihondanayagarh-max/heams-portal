@@ -497,6 +497,7 @@ const EmployeeApp = {
                     const remainMins = activeMins % 60;
                     activeTimeStr = `${activeHrs}h ${remainMins}m`;
 
+                    let reqMins = 540; // Default 9 hours
                     if (this.assignedBranch && this.assignedBranch.OfficeStart && this.assignedBranch.OfficeEnd) {
                         const parseTime = (t) => {
                             const m = t.toString().match(/(\d{1,2}):(\d{2})/);
@@ -504,25 +505,25 @@ const EmployeeApp = {
                         };
                         const bStart = parseTime(this.assignedBranch.OfficeStart);
                         const bEnd = parseTime(this.assignedBranch.OfficeEnd);
-                        let reqMins = bEnd - bStart;
-                        if (reqMins <= 0) reqMins = 540;
-                        
-                        const thresholdMins = reqMins * 0.95;
-                        if (activeMins < thresholdMins) {
-                            const remainMinsToThreshold = Math.ceil(thresholdMins - activeMins);
-                            const confirm = await Swal.fire({
-                                title: 'Shift Incomplete!',
-                                html: `Please wait <strong>${remainMinsToThreshold} minutes</strong> to complete your duty hours.<br><br>Punching out now may mark your day as a <strong>Half Day</strong> or <strong>Absent</strong> according to company criteria.<br><br>Are you sure you want to punch out early?`,
-                                icon: 'warning',
-                                showCancelButton: true,
-                                confirmButtonColor: '#E4002B',
-                                cancelButtonColor: '#6c757d',
-                                confirmButtonText: 'Yes, Punch Out',
-                                cancelButtonText: 'Wait'
-                            });
-                            if (!confirm.isConfirmed) {
-                                return;
-                            }
+                        let branchReq = bEnd - bStart;
+                        if (branchReq > 0) reqMins = branchReq;
+                    }
+                    
+                    const thresholdMins = reqMins * 0.95;
+                    if (activeMins < thresholdMins) {
+                        const remainMinsToThreshold = Math.ceil(thresholdMins - activeMins);
+                        const confirm = await Swal.fire({
+                            title: 'Shift Incomplete!',
+                            html: `Please wait <strong>${remainMinsToThreshold} minutes</strong> to complete your duty hours.<br><br>Punching out now may mark your day as a <strong>Half Day</strong> or <strong>Absent</strong> according to company criteria.<br><br>Are you sure you want to punch out early?`,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#E4002B',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: 'Yes, Punch Out',
+                            cancelButtonText: 'Wait'
+                        });
+                        if (!confirm.isConfirmed) {
+                            return;
                         }
                     }
                 }
