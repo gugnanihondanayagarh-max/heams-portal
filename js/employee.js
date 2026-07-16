@@ -469,19 +469,10 @@ const EmployeeApp = {
             let activeTimeStr = "";
 
             if (punchType === "Out") {
-                let timeOutside = parseInt(localStorage.getItem("EAMS_time_outside_ms") || "0");
-                const lastExit = parseInt(localStorage.getItem("EAMS_last_exit_time") || "0");
-                if (lastExit > 0 && localStorage.getItem("EAMS_inside_geofence") === "false") {
-                    timeOutside += (Date.now() - lastExit);
-                }
-                
                 let activeMins = 0;
-                const punchInTime = parseInt(localStorage.getItem("EAMS_punch_in_time") || "0");
-                if (punchInTime > 0) {
-                    const totalTimeMs = Date.now() - punchInTime;
-                    const activeTimeMs = Math.max(0, totalTimeMs - timeOutside);
-                    activeMins = Math.floor(activeTimeMs / 60000);
-                } else if (this.todayPunchObj && this.todayPunchObj.PunchIn) {
+                
+                // Fallback to strict time from backend first to avoid local cache issues
+                if (this.todayPunchObj && this.todayPunchObj.PunchIn) {
                     const parseTime = (t) => {
                         const m = t.toString().match(/(\d{1,2}):(\d{2})/);
                         return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
@@ -490,14 +481,21 @@ const EmployeeApp = {
                     const currentMins = now.getHours() * 60 + now.getMinutes();
                     activeMins = currentMins - parseTime(this.todayPunchObj.PunchIn);
                     if (activeMins < 0) activeMins += 24 * 60;
+                } else {
+                    const punchInTime = parseInt(localStorage.getItem("EAMS_punch_in_time") || "0");
+                    if (punchInTime > 0) {
+                        const totalTimeMs = Date.now() - punchInTime;
+                        activeMins = Math.floor(totalTimeMs / 60000);
+                    }
                 }
 
-                if (activeMins > 0) {
-                    const activeHrs = Math.floor(activeMins / 60);
-                    const remainMins = activeMins % 60;
-                    activeTimeStr = `${activeHrs}h ${remainMins}m`;
+                if (activeMins < 0) activeMins = 0;
 
-                    let reqMins = 540; // Default 9 hours
+                const activeHrs = Math.floor(activeMins / 60);
+                const remainMins = activeMins % 60;
+                activeTimeStr = `${activeHrs}h ${remainMins}m`;
+
+                let reqMins = 540; // Default 9 hours
                     if (this.assignedBranch && this.assignedBranch.OfficeStart && this.assignedBranch.OfficeEnd) {
                         const parseTime = (t) => {
                             const m = t.toString().match(/(\d{1,2}):(\d{2})/);
@@ -526,7 +524,6 @@ const EmployeeApp = {
                             return;
                         }
                     }
-                }
             }
 
             const res = await API.call({
