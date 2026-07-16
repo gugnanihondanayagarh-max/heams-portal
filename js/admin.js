@@ -1902,7 +1902,7 @@ const AdminApp = {
                     }
                     else if (val === "H" || val.trim() === "H") { 
                         textClass = ""; 
-                        innerHtml = `<span class="badge bg-warning text-dark rounded-pill shadow-sm" style="font-size:0.7rem; padding: 4px 8px;">H</span>`; 
+                        innerHtml = `<span class="badge bg-info text-dark rounded-pill shadow-sm" style="font-size:0.7rem; padding: 4px 8px;">H</span>`; 
                     }
                     else if (val === "MISS_OUT" || val.trim() === "MISS_OUT") { 
                         textClass = ""; 
