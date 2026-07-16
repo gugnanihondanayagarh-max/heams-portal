@@ -37,7 +37,6 @@ body.dark-mode .camera-viewport-container {
     height: 100%;
     object-fit: cover;
     display: none;
-    transform: scaleX(-1); /* Keep mirror view for consistency */
 }
 
 /* Camera overlays */
