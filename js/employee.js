@@ -473,15 +473,32 @@ const EmployeeApp = {
                 
                 // Fallback to strict time from backend first to avoid local cache issues
                 if (this.todayPunchObj && this.todayPunchObj.PunchIn) {
-                    const parseTime = (t) => {
-                        const m = t.toString().match(/(\d{1,2}):(\d{2})/);
-                        return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
-                    };
-                    const now = new Date();
-                    const currentMins = now.getHours() * 60 + now.getMinutes();
-                    activeMins = currentMins - parseTime(this.todayPunchObj.PunchIn);
-                    if (activeMins < 0) activeMins += 24 * 60;
-                } else {
+                    const t = this.todayPunchObj.PunchIn.toString();
+                    let inMins = 0;
+                    
+                    if (t.includes("T") && (t.endsWith("Z") || t.includes("+"))) {
+                        const d = new Date(t);
+                        if (!isNaN(d.getTime())) {
+                            inMins = d.getHours() * 60 + d.getMinutes();
+                        }
+                    }
+                    
+                    if (inMins === 0) {
+                        const m = t.match(/(\d{1,2}):(\d{2})/);
+                        if (m) {
+                            inMins = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+                        }
+                    }
+                    
+                    if (inMins > 0) {
+                        const now = new Date();
+                        const currentMins = now.getHours() * 60 + now.getMinutes();
+                        activeMins = currentMins - inMins;
+                        if (activeMins < 0) activeMins += 24 * 60;
+                    }
+                } 
+                
+                if (activeMins <= 0) {
                     const punchInTime = parseInt(localStorage.getItem("EAMS_punch_in_time") || "0");
                     if (punchInTime > 0) {
                         const totalTimeMs = Date.now() - punchInTime;
@@ -496,34 +513,48 @@ const EmployeeApp = {
                 activeTimeStr = `${activeHrs}h ${remainMins}m`;
 
                 let reqMins = 540; // Default 9 hours
-                    if (this.assignedBranch && this.assignedBranch.OfficeStart && this.assignedBranch.OfficeEnd) {
-                        const parseTime = (t) => {
-                            const m = t.toString().match(/(\d{1,2}):(\d{2})/);
-                            return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
-                        };
-                        const bStart = parseTime(this.assignedBranch.OfficeStart);
-                        const bEnd = parseTime(this.assignedBranch.OfficeEnd);
-                        let branchReq = bEnd - bStart;
-                        if (branchReq > 0) reqMins = branchReq;
-                    }
-                    
-                    const thresholdMins = reqMins * 0.95;
-                    if (activeMins < thresholdMins) {
-                        const remainMinsToThreshold = Math.ceil(thresholdMins - activeMins);
-                        const confirm = await Swal.fire({
-                            title: 'Shift Incomplete!',
-                            html: `Please wait <strong>${remainMinsToThreshold} minutes</strong> to complete your duty hours.<br><br>Punching out now may mark your day as a <strong>Half Day</strong> or <strong>Absent</strong> according to company criteria.<br><br>Are you sure you want to punch out early?`,
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonColor: '#E4002B',
-                            cancelButtonColor: '#6c757d',
-                            confirmButtonText: 'Yes, Punch Out',
-                            cancelButtonText: 'Wait'
-                        });
-                        if (!confirm.isConfirmed) {
-                            return;
+                if (this.assignedBranch && this.assignedBranch.OfficeStart && this.assignedBranch.OfficeEnd) {
+                    const parseTime = (t) => {
+                        let str = t.toString().trim();
+                        // Handle ISO dates
+                        if (str.includes("T") && (str.endsWith("Z") || str.includes("+"))) {
+                            const d = new Date(str);
+                            if (!isNaN(d.getTime())) return d.getHours() * 60 + d.getMinutes();
                         }
+                        // Handle standard AM/PM strings
+                        const m = str.match(/(\d{1,2}):(\d{2})/);
+                        if (m) {
+                            let hrs = parseInt(m[1], 10);
+                            const mins = parseInt(m[2], 10);
+                            if (str.toLowerCase().includes("pm") && hrs < 12) hrs += 12;
+                            if (str.toLowerCase().includes("am") && hrs === 12) hrs = 0;
+                            return hrs * 60 + mins;
+                        }
+                        return 0;
+                    };
+                    const bStart = parseTime(this.assignedBranch.OfficeStart);
+                    const bEnd = parseTime(this.assignedBranch.OfficeEnd);
+                    let branchReq = bEnd - bStart;
+                    if (branchReq > 0) reqMins = branchReq;
+                }
+                
+                const thresholdMins = reqMins * 0.95;
+                if (activeMins < thresholdMins) {
+                    const remainMinsToThreshold = Math.ceil(thresholdMins - activeMins);
+                    const confirm = await Swal.fire({
+                        title: 'Shift Incomplete!',
+                        html: `Please wait <strong>${remainMinsToThreshold} minutes</strong> to complete your duty hours.<br><br>Punching out now may mark your day as a <strong>Half Day</strong> or <strong>Absent</strong> according to company criteria.<br><br>Are you sure you want to punch out early?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#E4002B',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, Punch Out',
+                        cancelButtonText: 'Wait'
+                    });
+                    if (!confirm.isConfirmed) {
+                        return;
                     }
+                }
             }
 
             const res = await API.call({
