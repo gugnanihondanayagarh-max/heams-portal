@@ -470,6 +470,7 @@ const EmployeeApp = {
 
             if (punchType === "Out") {
                 let activeMins = 0;
+                let elapsedMins = 0;
                 
                 // Fallback to strict time from backend first to avoid local cache issues
                 if (this.todayPunchObj && this.todayPunchObj.PunchIn) {
@@ -493,19 +494,31 @@ const EmployeeApp = {
                     if (inMins > 0) {
                         const now = new Date();
                         const currentMins = now.getHours() * 60 + now.getMinutes();
-                        activeMins = currentMins - inMins;
-                        if (activeMins < 0) activeMins += 24 * 60;
+                        elapsedMins = currentMins - inMins;
+                        if (elapsedMins < 0) elapsedMins += 24 * 60;
                     }
                 } 
                 
-                if (activeMins <= 0) {
+                if (elapsedMins <= 0) {
                     const punchInTime = parseInt(localStorage.getItem("EAMS_punch_in_time") || "0");
                     if (punchInTime > 0) {
                         const totalTimeMs = Date.now() - punchInTime;
-                        activeMins = Math.floor(totalTimeMs / 60000);
+                        elapsedMins = Math.floor(totalTimeMs / 60000);
+                        
+                        // Failsafe: if cache is extremely stale (over 18 hours), limit it
+                        if (elapsedMins > 1080) elapsedMins = 0; 
                     }
                 }
 
+                // Calculate time outside geofence
+                let timeOutsideMs = parseInt(localStorage.getItem("EAMS_time_outside_ms") || "0");
+                const lastExitTime = parseInt(localStorage.getItem("EAMS_last_exit_time") || "0");
+                if (lastExitTime > 0 && localStorage.getItem("EAMS_inside_geofence") === "false") {
+                    timeOutsideMs += (Date.now() - lastExitTime);
+                }
+                const timeOutsideMins = Math.floor(timeOutsideMs / 60000);
+
+                activeMins = elapsedMins - timeOutsideMins;
                 if (activeMins < 0) activeMins = 0;
 
                 const activeHrs = Math.floor(activeMins / 60);
