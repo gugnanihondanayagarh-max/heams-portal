@@ -31,6 +31,13 @@ const EmployeeApp = {
 
         this.bindEvents();
         this.switchView("dashboard");
+        
+        // Show cached profile photo immediately for instant loading
+        const cachedPhoto = localStorage.getItem("EAMS_profile_photo");
+        if (cachedPhoto && cachedPhoto.trim() !== "") {
+            this.updateProfilePhotoUI(cachedPhoto);
+        }
+
         await this.loadDashboardData();
     },
 
@@ -143,6 +150,7 @@ const EmployeeApp = {
                 this.assignedBranch = res.branchDetails;
                 
                 if (res.employeeData && res.employeeData.ProfilePhoto) {
+                    localStorage.setItem("EAMS_profile_photo", res.employeeData.ProfilePhoto);
                     this.updateProfilePhotoUI(res.employeeData.ProfilePhoto);
                 }
                 this.attendanceStats = res.stats;
@@ -1516,9 +1524,7 @@ const EmployeeApp = {
 
             if (res.status === "Success" && res.photoUrl) {
                 // Update local storage data cache
-                const uData = Auth.getUserData();
-                uData.ProfilePhoto = res.photoUrl;
-                localStorage.setItem("EAMS_user", JSON.stringify(uData));
+                localStorage.setItem("EAMS_profile_photo", res.photoUrl);
                 
                 // Update UI instantly
                 this.updateProfilePhotoUI(res.photoUrl);
