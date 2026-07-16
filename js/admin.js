@@ -1885,7 +1885,6 @@ const AdminApp = {
                     if (val === "P") textClass = "text-success fw-bold";
                     else if (val === "A") textClass = "text-danger fw-bold";
                     else if (val === "L") textClass = "text-warning fw-bold";
-                    else if (val === "H") textClass = "text-info fw-bold";
                     else if (val === "WO") textClass = "text-primary fw-bold";
                     else if (val === "LV") textClass = "text-purple fw-bold";
                     else if (val === "HL") textClass = "text-dark fw-bold";
@@ -1900,6 +1899,10 @@ const AdminApp = {
                     else if (val === "EARLY_P" || val.trim() === "EARLY_P") { 
                         textClass = ""; 
                         innerHtml = `<span class="badge bg-warning text-dark rounded-pill shadow-sm" style="font-size:0.7rem; padding: 4px 8px;">P</span>`; 
+                    }
+                    else if (val === "H" || val.trim() === "H") { 
+                        textClass = ""; 
+                        innerHtml = `<span class="badge bg-warning text-dark rounded-pill shadow-sm" style="font-size:0.7rem; padding: 4px 8px;">H</span>`; 
                     }
                     else if (val === "MISS_OUT" || val.trim() === "MISS_OUT") { 
                         textClass = ""; 
