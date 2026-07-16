@@ -616,6 +616,9 @@ const EmployeeApp = {
                 } else if (punchType === "In") {
                     localStorage.setItem("EAMS_geofence_exited_count", "0");
                     localStorage.setItem("EAMS_inside_geofence", "true");
+                    localStorage.setItem("EAMS_punch_in_time", Date.now().toString());
+                    localStorage.setItem("EAMS_time_outside_ms", "0");
+                    localStorage.setItem("EAMS_last_exit_time", "0");
                     this.startGeofenceTracking();
                 }
                 Swal.fire({
@@ -1650,7 +1653,18 @@ const EmployeeApp = {
                         }
                     }
                 },
-                (err) => console.error("Geofence watch failed:", err),
+                (err) => {
+                    console.error("Geofence watch failed (Location turned off or signal lost):", err);
+                    const wasInside = localStorage.getItem("EAMS_inside_geofence") !== "false";
+                    if (wasInside) {
+                        let count = parseInt(localStorage.getItem("EAMS_geofence_exited_count") || "0");
+                        count++;
+                        localStorage.setItem("EAMS_geofence_exited_count", count.toString());
+                        localStorage.setItem("EAMS_inside_geofence", "false");
+                        localStorage.setItem("EAMS_last_exit_time", Date.now().toString());
+                        console.warn(`Geofence boundary crossed (GPS Disabled)! Total exits: ${count}.`);
+                    }
+                },
                 { enableHighAccuracy: true, timeout: 30000, maximumAge: 10000 }
             );
         }
