@@ -713,13 +713,13 @@ const EmployeeApp = {
                 } else if (hasPunchIn && !hasPunchOut) {
                     if (isToday) {
                         if (status.includes("Late")) {
-                            statusClass = "half";
+                            statusClass = "short";
                             statusLetter = `<span class="badge bg-warning text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.6rem; padding: 0; margin-top:2px; font-weight: bold;">IN</span>`;
                             statusTooltip = `Late Arrival (Working)`;
                         } else {
                             statusClass = "present";
-                            statusLetter = `<span class="badge bg-success rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
-                            statusTooltip = `Working (Status: ${status})`;
+                            statusLetter = `<span class="badge bg-success rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.6rem; padding: 0; margin-top:2px; font-weight: bold;">IN</span>`;
+                            statusTooltip = `Present (Working)`;
                         }
                     } else {
                         statusClass = "absent";
@@ -727,16 +727,16 @@ const EmployeeApp = {
                         statusTooltip = `Missed Punch Out`;
                     }
                 } else if (status.includes("Late")) {
-                    statusClass = "half";
+                    statusClass = "short";
                     statusLetter = `<span class="badge bg-warning text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.6rem; padding: 0; margin-top:2px; font-weight: bold;">IN</span>`;
                     statusTooltip = `Late Arrival`;
                 } else if (status.includes("Short")) {
-                    statusClass = "half";
+                    statusClass = "short";
                     statusLetter = `<span class="badge bg-warning text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.65rem; padding: 0; margin-top:2px; font-weight: bold;">P</span>`;
                     statusTooltip = `Short Day (Status: ${status})`;
                 } else if (status.includes("Half")) {
                     statusClass = "half";
-                    statusLetter = `<span class="badge bg-warning text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.65rem; padding: 0; margin-top:2px; font-weight: bold;">H</span>`;
+                    statusLetter = `<span class="badge bg-info text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.65rem; padding: 0; margin-top:2px; font-weight: bold;">H</span>`;
                     statusTooltip = `Half Day (Status: ${status})`;
                 } else if (status.includes("Present") || status.includes("Completed") || status.includes("Manual")) {
                     statusClass = "present";
