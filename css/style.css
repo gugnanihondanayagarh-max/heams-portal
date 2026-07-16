@@ -390,7 +390,7 @@ body.dark-mode .dropdown-toggle::after {
 
 
 /* Make camera act like a mirror */
-#camera-stream, #selfie-preview {
+#camera-stream {
     transform: scaleX(-1);
 }
 
