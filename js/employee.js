@@ -191,6 +191,9 @@ const EmployeeApp = {
 
                 // Render Recent activities
                 this.renderRecentActivities(res.recentPunches);
+                
+                // Start background foreground alarm tracker
+                this.startOverdueAlarmTracker();
             }
         } catch (err) {
             console.error("Failed to load dashboard metrics", err);
@@ -2009,6 +2012,91 @@ const EmployeeApp = {
                 }
             }
         });
+    },
+
+    // -----------------------------------------
+    // OVERDUE PUNCH AUDIO ALARM SYSTEM (Foreground)
+    // -----------------------------------------
+    alarmIntervalId: null,
+
+    startOverdueAlarmTracker() {
+        if (this.alarmIntervalId) clearInterval(this.alarmIntervalId);
+        
+        this.alarmIntervalId = setInterval(() => {
+            if (!this.assignedBranch || !this.assignedBranch.OfficeStart || !this.assignedBranch.OfficeEnd) return;
+            
+            const todayStr = new Date().toDateString();
+            const lastAlarmIn = localStorage.getItem("EAMS_alarm_in_triggered");
+            const lastAlarmOut = localStorage.getItem("EAMS_alarm_out_triggered");
+            
+            const now = new Date();
+            const currentMins = now.getHours() * 60 + now.getMinutes();
+            
+            const parseTime = (t) => {
+                let str = t.toString().trim();
+                const m = str.match(/(\d{1,2}):(\d{2})/);
+                if (m) {
+                    let hrs = parseInt(m[1], 10);
+                    const mins = parseInt(m[2], 10);
+                    if (str.toLowerCase().includes("pm") && hrs < 12) hrs += 12;
+                    if (str.toLowerCase().includes("am") && hrs === 12) hrs = 0;
+                    return hrs * 60 + mins;
+                }
+                return null;
+            };
+            
+            const startMins = parseTime(this.assignedBranch.OfficeStart);
+            const endMins = parseTime(this.assignedBranch.OfficeEnd);
+            
+            // Check for missed Punch In
+            if (startMins !== null && currentMins >= startMins) {
+                if ((!this.todayPunchObj || !this.todayPunchObj.PunchIn) && lastAlarmIn !== todayStr) {
+                    localStorage.setItem("EAMS_alarm_in_triggered", todayStr);
+                    this.playAlarm("ALARM! Your shift has started, but you haven't clocked in yet. Please Punch IN immediately.");
+                }
+            }
+            
+            // Check for missed Punch Out
+            if (endMins !== null && currentMins >= endMins) {
+                if (this.todayPunchObj && this.todayPunchObj.PunchIn && !this.todayPunchObj.PunchOut && lastAlarmOut !== todayStr) {
+                    localStorage.setItem("EAMS_alarm_out_triggered", todayStr);
+                    this.playAlarm("ALARM! Your shift has ended! Please Punch OUT before you leave for the day.");
+                }
+            }
+        }, 30000); // Check every 30 seconds
+    },
+    
+    playAlarm(message) {
+        try {
+            // Standard royalty-free digital watch alarm tone via Data URI to work entirely offline
+            // Using a simple short beep pattern string if possible, or standard Google sound
+            const audio = new Audio("https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg");
+            audio.loop = true;
+            
+            // Note: Autoplay may be blocked by browser if user hasn't interacted with the page yet,
+            // but since they opened the app to view the dashboard, interaction usually exists.
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => console.warn("Audio autoplay blocked by browser policy."));
+            }
+            
+            Swal.fire({
+                icon: "warning",
+                title: "<span style='color: #E4002B; font-weight: 800; font-size: 1.5rem;'><i class='fa-solid fa-bell fa-shake'></i> ATTENTION!</span>",
+                html: `<p style="font-size: 1.1rem; font-weight: 600;">${message}</p>`,
+                confirmButtonColor: "#E4002B",
+                confirmButtonText: "I Understand",
+                allowOutsideClick: false,
+                backdrop: `
+                  rgba(228,0,43,0.4)
+                `
+            }).then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+        } catch (e) {
+            console.error("Failed to play alarm", e);
+        }
     }
 };
 
