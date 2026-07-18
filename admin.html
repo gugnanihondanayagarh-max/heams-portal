@@ -538,19 +538,31 @@
                                 <form id="form-add-relaxation">
                                     <div class="mb-3">
                                         <label class="form-label small fw-semibold">Branch Name</label>
-                                        <input type="text" id="relax-branch-name" class="form-input-brand" placeholder="e.g. Bhubaneswar Sales" required>
+                                        <select id="relax-branch-name" class="form-input-brand" required>
+                                            <option value="">Select Branch...</option>
+                                            <!-- Populated dynamically -->
+                                        </select>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-semibold">Rule Type</label>
-                                        <select id="relax-rule-type" class="form-input-brand">
+                                        <select id="relax-rule-type" class="form-input-brand" onchange="AdminApp.toggleRelaxationRuleValueInput()">
                                             <option value="DayOfWeek">Every Day of Week</option>
                                             <option value="SpecificDate">Specific Date</option>
                                         </select>
                                     </div>
-                                    <div class="mb-3">
+                                    <div class="mb-3" id="relax-rule-value-container">
                                         <label class="form-label small fw-semibold">Rule Value</label>
-                                        <input type="text" id="relax-rule-value" class="form-input-brand" placeholder="e.g. Sunday or 25-Dec-2026" required>
-                                        <small class="text-muted d-block mt-1">If Day of Week, type "Sunday". If Date, type "DD-MMM-YYYY".</small>
+                                        <select id="relax-rule-value-day" class="form-input-brand" required>
+                                            <option value="">Select Day...</option>
+                                            <option value="Sunday">Sunday</option>
+                                            <option value="Monday">Monday</option>
+                                            <option value="Tuesday">Tuesday</option>
+                                            <option value="Wednesday">Wednesday</option>
+                                            <option value="Thursday">Thursday</option>
+                                            <option value="Friday">Friday</option>
+                                            <option value="Saturday">Saturday</option>
+                                        </select>
+                                        <input type="date" id="relax-rule-value-date" class="form-input-brand" style="display: none;">
                                     </div>
                                     <div class="mb-4">
                                         <label class="form-label small fw-semibold">Relaxed Office End Time</label>
