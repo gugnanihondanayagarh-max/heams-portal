@@ -578,21 +578,29 @@ const EmployeeApp = {
                     if (branchReq > 0) reqMins = branchReq;
                 }
                 
-                const thresholdMins = reqMins * 0.95;
-                if (activeMins < thresholdMins) {
-                    const remainMinsToThreshold = Math.ceil(thresholdMins - activeMins);
-                    let remainText = "";
-                    const rHrs = Math.floor(remainMinsToThreshold / 60);
-                    const rMins = remainMinsToThreshold % 60;
-                    if (rHrs > 0) {
-                        remainText = `${rHrs} hour${rHrs > 1 ? 's' : ''} and ${rMins} minute${rMins !== 1 ? 's' : ''}`;
+                const fullDayThreshold = reqMins * 0.95;
+                const halfDayThreshold = reqMins * 0.45;
+                
+                if (activeMins < fullDayThreshold) {
+                    const formatTime = (mins) => {
+                        const h = Math.floor(mins / 60);
+                        const m = mins % 60;
+                        return (h > 0 ? `${h} hour${h > 1 ? 's' : ''} and ` : '') + `${m} minute${m !== 1 ? 's' : ''}`;
+                    };
+                    
+                    let warningHtml = '';
+                    if (activeMins < halfDayThreshold) {
+                        const remainHalf = Math.ceil(halfDayThreshold - activeMins);
+                        const remainFull = Math.ceil(fullDayThreshold - activeMins);
+                        warningHtml = `Please wait <strong>${formatTime(remainHalf)}</strong> for a Half Day, or <strong>${formatTime(remainFull)}</strong> for a Full Day.<br><br>Punching out now will mark your day as <span style="background-color: #DC3545; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px;">Absent</span>.<br><br>Are you sure you want to punch out early?`;
                     } else {
-                        remainText = `${rMins} minute${rMins !== 1 ? 's' : ''}`;
+                        const remainFull = Math.ceil(fullDayThreshold - activeMins);
+                        warningHtml = `Please wait <strong>${formatTime(remainFull)}</strong> to complete your full duty hours.<br><br>Punching out now will mark your day as a <span style="background-color: #FFC107; color: black; font-weight: bold; padding: 2px 6px; border-radius: 4px;">Half Day</span>.<br><br>Are you sure you want to punch out early?`;
                     }
                     
                     const confirm = await Swal.fire({
                         title: 'Shift Incomplete!',
-                        html: `Please wait <strong>${remainText}</strong> to complete your duty hours.<br><br>Punching out now may mark your day as a <strong>Half Day</strong> or <strong>Absent</strong> according to company criteria.<br><br>Are you sure you want to punch out early?`,
+                        html: warningHtml,
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#E4002B',
