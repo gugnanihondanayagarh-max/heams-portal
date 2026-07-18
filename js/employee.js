@@ -1796,6 +1796,58 @@ const EmployeeApp = {
             outInput.required = true;
         }
     },
+    async checkExistingPunchForCorrection() {
+        const dateInput = document.getElementById("corr-date").value;
+        const infoDiv = document.getElementById("corr-existing-info");
+        const submitBtn = document.getElementById("btn-submit-corr");
+        
+        if (!dateInput) {
+            infoDiv.style.display = "none";
+            submitBtn.disabled = false;
+            return;
+        }
+        
+        const parsedDate = new Date(dateInput);
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const formattedDate = `${parsedDate.getDate().toString().padStart(2, '0')}-${months[parsedDate.getMonth()]}-${parsedDate.getFullYear()}`;
+        
+        try {
+            infoDiv.style.display = "block";
+            infoDiv.className = "text-muted small mt-1";
+            infoDiv.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Checking existing record...';
+            
+            const res = await API.call({
+                action: "getEmployeeHistory",
+                employeeId: Auth.getUserId(),
+                month: parsedDate.getMonth() + 1,
+                year: parsedDate.getFullYear()
+            }, false);
+            
+            if (res.status === "Success" && res.data) {
+                const record = res.data.find(d => d.Date === formattedDate);
+                if (record) {
+                    let msg = `<strong>Found Record:</strong>`;
+                    if (record.PunchIn) msg += `<br>Punched In: ${record.PunchIn}`;
+                    if (record.PunchOut) msg += `<br>Punched Out: ${record.PunchOut}`;
+                    
+                    if (record.PunchIn && record.PunchOut) {
+                        infoDiv.className = "text-danger small mt-1";
+                        msg += `<br><em>You have already completed your punch out for this day.</em>`;
+                    } else {
+                        infoDiv.className = "text-warning small mt-1";
+                    }
+                    infoDiv.innerHTML = msg;
+                } else {
+                    infoDiv.className = "text-success small mt-1";
+                    infoDiv.innerHTML = "No existing punch record found for this date.";
+                }
+            } else {
+                infoDiv.style.display = "none";
+            }
+        } catch (e) {
+            infoDiv.style.display = "none";
+        }
+    },
 
     async submitCorrectionRequest(event) {
         event.preventDefault();
