@@ -2138,13 +2138,13 @@ const EmployeeApp = {
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const formattedDate = `${parsedDate.getDate().toString().padStart(2, '0')}-${months[parsedDate.getMonth()]}-${parsedDate.getFullYear()}`;
 
-        // The branch of the manager is already tracked in dashboardData
-        if (!this.dashboardData || !this.dashboardData.profile || !this.dashboardData.profile.Branch) {
+        // The branch of the manager is tracked in assignedBranch
+        if (!this.assignedBranch || !this.assignedBranch.BranchName) {
             Swal.fire('Error', 'Could not determine your assigned branch.', 'error');
             return;
         }
 
-        const managerBranch = this.dashboardData.profile.Branch;
+        const managerBranch = this.assignedBranch.BranchName;
 
         const confirm = await Swal.fire({
             title: 'Submit Request?',
