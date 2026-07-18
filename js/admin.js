@@ -2532,6 +2532,7 @@ const AdminApp = {
 
     async loadRelaxations() {
         try {
+            this.populateBranchDropdowns();
             const res = await API.call({ action: 'fetchRelaxations' });
             if (res.status === 'Success') {
                 this.renderRelaxationTable(res.data);
