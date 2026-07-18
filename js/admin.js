@@ -2015,7 +2015,7 @@ const AdminApp = {
                 document.getElementById("audit-emp-dept-desig").innerText = `${emp.Department || '--'} / ${emp.Designation || '--'}`;
             }
 
-            // Single call — fetchHistoryLogs returns { data: attLogs, leaves: approvedLeaves }
+            // Single call  fetchHistoryLogs returns { data: attLogs, leaves: approvedLeaves }
             const res = await API.call({ action: "fetchHistory", employeeId: employeeId }, false);
             if (res.status === "Success" && res.data) {
                 // Build lookup map by NORMALIZED ISO date and merge split punch records
@@ -2072,7 +2072,7 @@ const AdminApp = {
                     }
                 });
 
-                // Approved leaves — normalize StartDate/EndDate for comparison
+                // Approved leaves  normalize StartDate/EndDate for comparison
                 const approvedLeaves = (res.leaves || []).map(lv => ({
                     ...lv,
                     _startISO: this.normDateToISO(lv.StartDate),
@@ -2109,7 +2109,7 @@ const AdminApp = {
                             attId: log.AttendanceID || ""
                         });
                     } else {
-                        // No attendance record — check approved leaves (normalized dates)
+                        // No attendance record  check approved leaves (normalized dates)
                         let leaveText = "Absent";
                         for (let l = 0; l < approvedLeaves.length; l++) {
                             const start = new Date(approvedLeaves[l]._startISO);
@@ -2144,7 +2144,7 @@ const AdminApp = {
                 }
 
                 document.getElementById("audit-emp-rows").innerHTML = rows.map(r => {
-                    // Badge color — mirrors Matrix cell colors exactly
+                    // Badge color  mirrors Matrix cell colors exactly
                     let badgeClass = "bg-secondary";
                     const s = r.status;
                     if (s.startsWith("Present") || s.startsWith("Completed") || s.startsWith("Manual")) badgeClass = "bg-success";
@@ -2194,7 +2194,7 @@ const AdminApp = {
     resolveImageUrl(url) {
         if (!url || url.toString().trim() === "") return null;
         const s = url.toString().trim();
-        // Google Drive file/view URL → use lh3 direct image serve (no CORS issues)
+        // Google Drive file/view URL  use lh3 direct image serve (no CORS issues)
         const driveMatch = s.match(/\/file\/d\/([^/]+)/);
         if (driveMatch) {
             const fileId = driveMatch[1].replace(/\/view.*$/, '').replace(/[?].*$/, '');
@@ -2211,7 +2211,7 @@ const AdminApp = {
         const s = raw.toString().trim();
         // "HH:MM:SS" pattern
         if (/^\d{2}:\d{2}(:\d{2})?$/.test(s)) return s.substring(0, 5);
-        // Full date-time string — extract time part
+        // Full date-time string  extract time part
         const dt = new Date(s);
         if (!isNaN(dt)) {
             return dt.getHours().toString().padStart(2, '0') + ':' + dt.getMinutes().toString().padStart(2, '0');
@@ -2270,10 +2270,10 @@ const AdminApp = {
             const emp = this.employeesData.find(e => e.EmployeeID.toString().toLowerCase() === employeeId.toLowerCase());
             document.getElementById("day-audit-emp-name").innerText = emp ? `${emp.Name} (${emp.EmployeeID})` : employeeId;
 
-            // Fetch attendance records — fetchHistoryLogs returns data + leaves
+            // Fetch attendance records  fetchHistoryLogs returns data + leaves
             const res = await API.call({ action: "fetchHistory", employeeId: employeeId }, false);
             if (res.status === "Success" && res.data) {
-                // Find matching record — normalize both sides to ISO before comparing
+                // Find matching record  normalize both sides to ISO before comparing
                 // Also merge records for same date (manual corrections can create 2nd row)
                 const dayLogs = res.data.filter(a => this.normDateToISO(a.Date) === dateStr);
                 // Merge: primary punch record first, then any correction/manual
@@ -2307,7 +2307,7 @@ const AdminApp = {
                     document.getElementById("day-audit-status").className = `badge ${badgeClass} fs-6 px-3 py-2`;
                     document.getElementById("day-audit-status").innerText = status;
 
-                    // Times — use cleanTimeDisplay to safely handle 1899-epoch Google Sheets time objects
+                    // Times  use cleanTimeDisplay to safely handle 1899-epoch Google Sheets time objects
                     const inTime  = this.cleanTimeDisplay(log.PunchIn  || (correctionLog && correctionLog.PunchIn));
                     const outTime = this.cleanTimeDisplay(log.PunchOut || (correctionLog && correctionLog.PunchOut));
                     document.getElementById("day-audit-in-time").innerText  = inTime  || "--";
@@ -2351,7 +2351,7 @@ const AdminApp = {
                     document.getElementById("day-audit-remarks").className = isBad ? "fw-bold text-danger" : "fw-semibold text-success";
 
                 } else {
-                    // No punch record — check leaves
+                    // No punch record  check leaves
                     const leaveRes = res; // leaves already in fetchHistory response
                     let statusText = "Absent (No Record)";
                     let badgeClass = "bg-danger";
@@ -2520,9 +2520,7 @@ const AdminApp = {
             btn.innerHTML = originalBtnHtml;
             btn.disabled = false;
         }
-    }
-};
-
+    },
 
 
     // --- RELAXATION MANAGEMENT ---
@@ -2651,7 +2649,7 @@ const AdminApp = {
                 console.error(e);
             }
         }
-    }
+    },
 
     async saveRelaxationRecord() {
         const branchName = document.getElementById('relax-branch-name').value.trim();
@@ -2687,3 +2685,5 @@ const AdminApp = {
             console.error(e);
         }
     }
+};
+
