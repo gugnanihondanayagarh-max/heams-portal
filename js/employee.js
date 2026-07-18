@@ -78,6 +78,12 @@ const EmployeeApp = {
             this.submitLeaveApplication();
         });
 
+        // Manager relaxation request
+        document.getElementById("form-request-relaxation")?.addEventListener("submit", (e) => {
+            e.preventDefault();
+            this.submitRelaxationRequest();
+        });
+
         // Password Change submit
         document.getElementById("form-change-password")?.addEventListener("submit", (e) => {
             e.preventDefault();
@@ -2114,7 +2120,65 @@ const EmployeeApp = {
         } catch (e) {
             console.error("Failed to play alarm", e);
         }
+    },
+
+    // --- MANAGER RELAXATION REQUEST ---
+    async submitRelaxationRequest() {
+        const rawDate = document.getElementById('mgr-relax-date').value;
+        const endTime = document.getElementById('mgr-relax-time').value;
+
+        if (!rawDate || !endTime) {
+            Swal.fire('Error', 'Please fill in both Date and End Time', 'warning');
+            return;
+        }
+
+        // Format date to dd-MMM-yyyy
+        const parsedDate = new Date(rawDate);
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const formattedDate = `${parsedDate.getDate().toString().padStart(2, '0')}-${months[parsedDate.getMonth()]}-${parsedDate.getFullYear()}`;
+
+        // The branch of the manager is already tracked in dashboardData
+        if (!this.dashboardData || !this.dashboardData.profile || !this.dashboardData.profile.Branch) {
+            Swal.fire('Error', 'Could not determine your assigned branch.', 'error');
+            return;
+        }
+
+        const managerBranch = this.dashboardData.profile.Branch;
+
+        const confirm = await Swal.fire({
+            title: 'Submit Request?',
+            text: `Request relaxation for ${managerBranch} on ${formattedDate} until ${endTime}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Submit to Admin'
+        });
+
+        if (confirm.isConfirmed) {
+            try {
+                Swal.fire({ title: 'Submitting...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                
+                const res = await API.call({
+                    action: 'saveRelaxation',
+                    data: {
+                        BranchName: managerBranch,
+                        RuleType: 'SpecificDate',
+                        RuleValue: formattedDate,
+                        NewOfficeEnd: endTime,
+                        Status: 'Pending',
+                        RequestedBy: Auth.getUserId()
+                    }
+                });
+
+                if (res.status === 'Success') {
+                    Swal.fire('Success', 'Relaxation request sent to Admin.', 'success');
+                    document.getElementById('form-request-relaxation').reset();
+                } else {
+                    Swal.fire('Error', res.message, 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire('Error', 'Server communication failed.', 'error');
+            }
+        }
     }
 };
-
-
