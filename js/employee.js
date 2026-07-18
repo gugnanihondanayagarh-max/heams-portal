@@ -581,9 +581,18 @@ const EmployeeApp = {
                 const thresholdMins = reqMins * 0.95;
                 if (activeMins < thresholdMins) {
                     const remainMinsToThreshold = Math.ceil(thresholdMins - activeMins);
+                    let remainText = "";
+                    const rHrs = Math.floor(remainMinsToThreshold / 60);
+                    const rMins = remainMinsToThreshold % 60;
+                    if (rHrs > 0) {
+                        remainText = `${rHrs} hour${rHrs > 1 ? 's' : ''} and ${rMins} minute${rMins !== 1 ? 's' : ''}`;
+                    } else {
+                        remainText = `${rMins} minute${rMins !== 1 ? 's' : ''}`;
+                    }
+                    
                     const confirm = await Swal.fire({
                         title: 'Shift Incomplete!',
-                        html: `Please wait <strong>${remainMinsToThreshold} minutes</strong> to complete your duty hours.<br><br>Punching out now may mark your day as a <strong>Half Day</strong> or <strong>Absent</strong> according to company criteria.<br><br>Are you sure you want to punch out early?`,
+                        html: `Please wait <strong>${remainText}</strong> to complete your duty hours.<br><br>Punching out now may mark your day as a <strong>Half Day</strong> or <strong>Absent</strong> according to company criteria.<br><br>Are you sure you want to punch out early?`,
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#E4002B',
