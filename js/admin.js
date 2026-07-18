@@ -2566,6 +2566,7 @@ const AdminApp = {
                         <td><span class="badge ${rule.RuleType === 'DayOfWeek' ? 'bg-info' : 'bg-primary'}">${rule.RuleType === 'DayOfWeek' ? 'Weekly Day' : 'Specific Date'}</span></td>
                         <td>${rule.RuleValue}</td>
                         <td class="text-danger fw-bold">${rule.NewOfficeEnd}</td>
+                        <td>${rule.Reason || '-'}</td>
                         <td>
                             <button class="btn btn-sm btn-outline-danger" onclick="AdminApp.deleteRelaxation('${rule.RuleID}')">
                                 <i class="fa-solid fa-trash"></i> Delete
@@ -2582,6 +2583,7 @@ const AdminApp = {
                         <td>${rule.RuleValue}</td>
                         <td class="text-danger fw-bold">${rule.NewOfficeEnd}</td>
                         <td><span class="badge bg-dark">${rule.RequestedBy}</span></td>
+                        <td>${rule.Reason || '-'}</td>
                         <td>
                             <button class="btn btn-sm btn-success me-1" onclick="AdminApp.updateRelaxationStatus('${rule.RuleID}', 'Active')"><i class="fa-solid fa-check"></i></button>
                             <button class="btn btn-sm btn-danger" onclick="AdminApp.updateRelaxationStatus('${rule.RuleID}', 'Rejected')"><i class="fa-solid fa-xmark"></i></button>
