@@ -723,7 +723,8 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label small fw-semibold">Target Missed Date</label>
-                            <input type="date" id="corr-date" class="form-input-brand" required>
+                            <input type="date" id="corr-date" class="form-input-brand" required onchange="EmployeeApp.checkExistingPunchForCorrection()">
+                            <div id="corr-existing-info" style="display:none;"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-semibold">Correction Type</label>
@@ -755,7 +756,7 @@
                     </div>
                     <div class="modal-footer border-top border-secondary">
                         <button type="button" class="btn btn-secondary py-2" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-brand-primary py-2"><i class="fa-solid fa-paper-plane"></i> File Request</button>
+                        <button type="submit" id="btn-submit-corr" class="btn btn-brand-primary py-2"><i class="fa-solid fa-paper-plane"></i> File Request</button>
                     </div>
                 </form>
             </div>
