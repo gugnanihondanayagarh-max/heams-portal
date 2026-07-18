@@ -88,6 +88,12 @@
                     </a>
                 </li>
                 <li>
+                    <a href="#" class="sidebar-link" data-tab="relaxations">
+                        <i class="fa-solid fa-umbrella-beach"></i>
+                        <span>Relaxations</span>
+                    </a>
+                </li>
+                <li>
                     <a href="#" class="sidebar-link" data-tab="leave">
                         <i class="fa-solid fa-envelope-open-text"></i>
                         <span>Leave Requests</span>
@@ -519,6 +525,84 @@
                                     <!-- Populated dynamically -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Relaxations -->
+                <div id="view-relaxations" class="admin-tab-view" style="display: none;">
+                    <div class="row g-4">
+                        <div class="col-md-5">
+                            <div class="glass-card p-4">
+                                <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-umbrella-beach text-brand"></i> Add Special Relaxation</h5>
+                                <form id="form-add-relaxation">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold">Branch Name</label>
+                                        <input type="text" id="relax-branch-name" class="form-input-brand" placeholder="e.g. Bhubaneswar Sales" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold">Rule Type</label>
+                                        <select id="relax-rule-type" class="form-input-brand">
+                                            <option value="DayOfWeek">Every Day of Week</option>
+                                            <option value="SpecificDate">Specific Date</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold">Rule Value</label>
+                                        <input type="text" id="relax-rule-value" class="form-input-brand" placeholder="e.g. Sunday or 25-Dec-2026" required>
+                                        <small class="text-muted d-block mt-1">If Day of Week, type "Sunday". If Date, type "DD-MMM-YYYY".</small>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="form-label small fw-semibold">Relaxed Office End Time</label>
+                                        <input type="time" id="relax-office-end" class="form-input-brand" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-brand-primary w-100 py-2"><i class="fa-solid fa-save"></i> Save Relaxation</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="col-md-7">
+                            <div class="table-custom-card h-100 mb-4">
+                                <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-clock text-warning"></i> Pending Requests from Managers</h5>
+                                <div class="table-responsive">
+                                    <table class="custom-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Rule ID</th>
+                                                <th>Branch</th>
+                                                <th>Date</th>
+                                                <th>End Time</th>
+                                                <th>Requested By</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="relaxations-pending-table-body">
+                                            <!-- JS Loaded -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="table-custom-card h-100">
+                                <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-list-ul text-brand"></i> Active Relaxations</h5>
+                                <div class="table-responsive">
+                                    <table class="custom-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Rule ID</th>
+                                                <th>Branch</th>
+                                                <th>Type</th>
+                                                <th>Value</th>
+                                                <th>End Time</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="relaxations-table-body">
+                                            <!-- JS Loaded -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
