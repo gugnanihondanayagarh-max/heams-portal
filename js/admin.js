@@ -95,6 +95,12 @@ const AdminApp = {
             this.saveHolidayRecord();
         });
 
+        // Relaxation submit
+        document.getElementById("form-add-relaxation")?.addEventListener("submit", (e) => {
+            e.preventDefault();
+            this.saveRelaxationRecord();
+        });
+
         // Report compiler run button
         document.getElementById("btn-generate-report")?.addEventListener("click", () => {
             this.runReportGeneration();
@@ -212,6 +218,8 @@ const AdminApp = {
             this.loadAttendanceLedger();
         } else if (tabId === "branches") {
             this.loadBranchesList();
+        } else if (tabId === "relaxations") {
+            this.loadRelaxations();
         } else if (tabId === "leave") {
             this.loadLeaveRequests();
         } else if (tabId === "corrections") {
@@ -2516,3 +2524,166 @@ const AdminApp = {
 };
 
 
+
+    // --- RELAXATION MANAGEMENT ---
+
+    async loadRelaxations() {
+        try {
+            const res = await API.call({ action: 'fetchRelaxations' });
+            if (res.status === 'Success') {
+                this.renderRelaxationTable(res.data);
+            } else {
+                Swal.fire('Error', res.message, 'error');
+            }
+        } catch (e) {
+            console.error('Failed to load relaxations', e);
+        }
+    },
+
+    renderRelaxationTable(data) {
+        const activeTbody = document.getElementById('relaxations-table-body');
+        const pendingTbody = document.getElementById('relaxations-pending-table-body');
+        if (!activeTbody || !pendingTbody) return;
+        
+        activeTbody.innerHTML = '';
+        pendingTbody.innerHTML = '';
+        
+        let activeCount = 0;
+        let pendingCount = 0;
+
+        if (data && data.length > 0) {
+            data.forEach(rule => {
+                if (rule.Status === 'Active') {
+                    activeCount++;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><span class="badge bg-secondary">${rule.RuleID}</span></td>
+                        <td class="fw-bold">${rule.BranchName}</td>
+                        <td><span class="badge ${rule.RuleType === 'DayOfWeek' ? 'bg-info' : 'bg-primary'}">${rule.RuleType === 'DayOfWeek' ? 'Weekly Day' : 'Specific Date'}</span></td>
+                        <td>${rule.RuleValue}</td>
+                        <td class="text-danger fw-bold">${rule.NewOfficeEnd}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="AdminApp.deleteRelaxation('${rule.RuleID}')">
+                                <i class="fa-solid fa-trash"></i> Delete
+                            </button>
+                        </td>
+                    `;
+                    activeTbody.appendChild(tr);
+                } else if (rule.Status === 'Pending') {
+                    pendingCount++;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><span class="badge bg-secondary">${rule.RuleID}</span></td>
+                        <td class="fw-bold">${rule.BranchName}</td>
+                        <td>${rule.RuleValue}</td>
+                        <td class="text-danger fw-bold">${rule.NewOfficeEnd}</td>
+                        <td><span class="badge bg-dark">${rule.RequestedBy}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-success me-1" onclick="AdminApp.updateRelaxationStatus('${rule.RuleID}', 'Active')"><i class="fa-solid fa-check"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick="AdminApp.updateRelaxationStatus('${rule.RuleID}', 'Rejected')"><i class="fa-solid fa-xmark"></i></button>
+                        </td>
+                    `;
+                    pendingTbody.appendChild(tr);
+                }
+            });
+        }
+
+        if (activeCount === 0) {
+            activeTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No active relaxations found.</td></tr>';
+        }
+        if (pendingCount === 0) {
+            pendingTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No pending requests.</td></tr>';
+        }
+    },
+
+    async updateRelaxationStatus(ruleId, newStatus) {
+        const actionStr = newStatus === 'Active' ? 'approve' : 'reject';
+        const confirm = await Swal.fire({
+            title: `Confirm ${actionStr}?`,
+            text: `Are you sure you want to ${actionStr} this relaxation request?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: `Yes, ${actionStr} it`
+        });
+        
+        if (confirm.isConfirmed) {
+            try {
+                const res = await API.call({
+                    action: 'updateRelaxation',
+                    ruleId: ruleId,
+                    status: newStatus
+                });
+                if (res.status === 'Success') {
+                    Swal.fire('Success', res.message, 'success');
+                    this.loadRelaxations();
+                } else {
+                    Swal.fire('Error', res.message, 'error');
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+    },
+
+    async deleteRelaxation(ruleId) {
+        const confirm = await Swal.fire({
+            title: 'Delete Relaxation?',
+            text: 'Are you sure you want to remove this rule?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#E4002B',
+            confirmButtonText: 'Yes, delete it!'
+        });
+        
+        if (confirm.isConfirmed) {
+            try {
+                const res = await API.call({
+                    action: 'deleteRelaxation',
+                    ruleId: ruleId
+                });
+                if (res.status === 'Success') {
+                    Swal.fire('Deleted', 'Rule removed.', 'success');
+                    this.loadRelaxations();
+                } else {
+                    Swal.fire('Error', res.message, 'error');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    }
+
+    async saveRelaxationRecord() {
+        const branchName = document.getElementById('relax-branch-name').value.trim();
+        const ruleType = document.getElementById('relax-rule-type').value;
+        const ruleValue = document.getElementById('relax-rule-value').value.trim();
+        const newOfficeEnd = document.getElementById('relax-office-end').value;
+
+        if (!branchName || !ruleValue || !newOfficeEnd) {
+            Swal.fire('Error', 'Please fill in all fields.', 'warning');
+            return;
+        }
+
+        try {
+            const res = await API.call({
+                action: 'saveRelaxation',
+                data: {
+                    BranchName: branchName,
+                    RuleType: ruleType,
+                    RuleValue: ruleValue,
+                    NewOfficeEnd: newOfficeEnd
+                }
+            });
+
+            if (res.status === 'Success') {
+                Swal.fire('Saved', 'Relaxation rule added.', 'success').then(() => {
+                    document.getElementById('form-add-relaxation').reset();
+                    this.loadRelaxations();
+                });
+            } else {
+                Swal.fire('Error', res.message, 'error');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
