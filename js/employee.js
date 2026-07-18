@@ -367,7 +367,7 @@ const EmployeeApp = {
         const accuracyFill = document.getElementById("gps-accuracy-fill");
         const accuracyText = document.getElementById("gps-accuracy-text");
         if (accuracyFill && accuracyText) {
-            accuracyText.innerText = `Accuracy: ±${this.currentCoords.accuracy.toFixed(1)}m`;
+            accuracyText.innerText = `Accuracy: ${this.currentCoords.accuracy.toFixed(1)}m`;
             
             // Set styles based on accuracy
             if (this.currentCoords.accuracy <= 25) {
@@ -2126,6 +2126,7 @@ const EmployeeApp = {
     async submitRelaxationRequest() {
         const rawDate = document.getElementById('mgr-relax-date').value;
         const endTime = document.getElementById('mgr-relax-time').value;
+        const reason = document.getElementById('mgr-relax-reason').value.trim();
 
         if (!rawDate || !endTime) {
             Swal.fire('Error', 'Please fill in both Date and End Time', 'warning');
@@ -2165,7 +2166,8 @@ const EmployeeApp = {
                         RuleValue: formattedDate,
                         NewOfficeEnd: endTime,
                         Status: 'Pending',
-                        RequestedBy: Auth.getUserId()
+                        RequestedBy: Auth.getUserId(),
+                        Reason: reason
                     }
                 });
 
@@ -2182,3 +2184,4 @@ const EmployeeApp = {
         }
     }
 };
+
