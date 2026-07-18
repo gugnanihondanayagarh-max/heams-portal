@@ -727,9 +727,14 @@ const AdminApp = {
             }
 
             select.innerHTML = '<option value="">Select Branch Location</option>';
+            const relaxSelect = document.getElementById("relax-branch-name");
+            if (relaxSelect) relaxSelect.innerHTML = '<option value="">Select Branch Location</option>';
+
             this.branchesData.forEach(b => {
                 if (b.Status === "Active") {
-                    select.innerHTML += `<option value="${b.BranchName}">${b.BranchName}</option>`;
+                    const opt = `<option value="${b.BranchName}">${b.BranchName}</option>`;
+                    select.innerHTML += opt;
+                    if (relaxSelect) relaxSelect.innerHTML += opt;
                 }
             });
         } catch (err) {
@@ -2651,10 +2656,38 @@ const AdminApp = {
         }
     },
 
-    async saveRelaxationRecord() {
-        const branchName = document.getElementById('relax-branch-name').value.trim();
+    toggleRelaxationRuleValueInput() {
         const ruleType = document.getElementById('relax-rule-type').value;
-        const ruleValue = document.getElementById('relax-rule-value').value.trim();
+        const daySelect = document.getElementById('relax-rule-value-day');
+        const dateInput = document.getElementById('relax-rule-value-date');
+        if (ruleType === 'DayOfWeek') {
+            daySelect.style.display = 'block';
+            daySelect.required = true;
+            dateInput.style.display = 'none';
+            dateInput.required = false;
+        } else {
+            daySelect.style.display = 'none';
+            daySelect.required = false;
+            dateInput.style.display = 'block';
+            dateInput.required = true;
+        }
+    },
+
+    async saveRelaxationRecord() {
+        const branchName = document.getElementById('relax-branch-name').value;
+        const ruleType = document.getElementById('relax-rule-type').value;
+        
+        let ruleValue = '';
+        if (ruleType === 'DayOfWeek') {
+            ruleValue = document.getElementById('relax-rule-value-day').value;
+        } else {
+            const rawDate = document.getElementById('relax-rule-value-date').value;
+            if (rawDate) {
+                const d = new Date(rawDate);
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                ruleValue = `${d.getDate().toString().padStart(2, '0')}-${months[d.getMonth()]}-${d.getFullYear()}`;
+            }
+        }
         const newOfficeEnd = document.getElementById('relax-office-end').value;
 
         if (!branchName || !ruleValue || !newOfficeEnd) {
@@ -2676,6 +2709,7 @@ const AdminApp = {
             if (res.status === 'Success') {
                 Swal.fire('Saved', 'Relaxation rule added.', 'success').then(() => {
                     document.getElementById('form-add-relaxation').reset();
+                    this.toggleRelaxationRuleValueInput();
                     this.loadRelaxations();
                 });
             } else {
