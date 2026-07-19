@@ -1862,6 +1862,22 @@ const AdminApp = {
         return this.loadDashboardMatrix(force);
     },
 
+    filterMatrixGrid() {
+        const query = (document.getElementById("matrix-search").value || "").toLowerCase();
+        const rows = document.querySelectorAll("#dashboard-matrix-rows tr");
+        rows.forEach(row => {
+            const empId = row.querySelector("td:nth-child(1)")?.innerText.toLowerCase() || "";
+            const name = row.querySelector("td:nth-child(2)")?.innerText.toLowerCase() || "";
+            const branch = row.querySelector("td:nth-child(3)")?.innerText.toLowerCase() || "";
+            
+            if (empId.includes(query) || name.includes(query) || branch.includes(query)) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    },
+
     renderDashboardMatrixFromCache() {
         const containerHeaders = document.getElementById("dashboard-matrix-headers");
         const containerRows = document.getElementById("dashboard-matrix-rows");
