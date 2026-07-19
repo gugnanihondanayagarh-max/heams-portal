@@ -1476,11 +1476,14 @@ const AdminApp = {
         
         containerRows.innerHTML = `<tr><td colspan="9" class="text-center py-4"><div class="spinner-border text-danger"></div></td></tr>`;
         
+        const showInactive = document.getElementById("reports-show-inactive") ? document.getElementById("reports-show-inactive").checked : false;
+        
         try {
             const res = await API.call({
                 action: "generateReport",
                 reportType: type,
-                date: dateVal
+                date: dateVal,
+                includeInactive: showInactive
             });
 
             if (res.status === "Success" && res.headers && res.data) {
@@ -1838,10 +1841,13 @@ const AdminApp = {
                 }
             }
 
+            const showInactive = document.getElementById("matrix-show-inactive") ? document.getElementById("matrix-show-inactive").checked : false;
+
             const res = await API.call({
                 action: "generateReport",
                 reportType: "Matrix",
-                date: targetVal ? `${targetVal}-01` : ""
+                date: targetVal ? `${targetVal}-01` : "",
+                includeInactive: showInactive
             }, false);
 
             if (res.status === "Success" && res.headers && res.data) {
