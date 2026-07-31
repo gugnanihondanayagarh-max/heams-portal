@@ -819,7 +819,17 @@ const EmployeeApp = {
         const lastDay = new Date(year, month + 1, 0).getDate();
 
         const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        let calHtml = "";
+        
+        // Inject headers directly into the grid so they never misalign
+        let calHtml = `
+            <div class="calendar-header-day">Su</div>
+            <div class="calendar-header-day">Mo</div>
+            <div class="calendar-header-day">Tu</div>
+            <div class="calendar-header-day">We</div>
+            <div class="calendar-header-day">Th</div>
+            <div class="calendar-header-day">Fr</div>
+            <div class="calendar-header-day">Sa</div>
+        `;
         
         // Blank placeholders for day offsets
         for (let i = 0; i < firstDayIndex; i++) {
