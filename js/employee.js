@@ -520,7 +520,11 @@ const EmployeeApp = {
                     if (inMins === 0) {
                         const m = t.match(/(\d{1,2}):(\d{2})/);
                         if (m) {
-                            inMins = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+                            let hrs = parseInt(m[1], 10);
+                            const mns = parseInt(m[2], 10);
+                            if (t.toLowerCase().includes("pm") && hrs < 12) hrs += 12;
+                            if (t.toLowerCase().includes("am") && hrs === 12) hrs = 0;
+                            inMins = hrs * 60 + mns;
                         }
                     }
                     
@@ -551,7 +555,10 @@ const EmployeeApp = {
                 }
                 const timeOutsideMins = Math.floor(timeOutsideMs / 60000);
 
-                activeMins = elapsedMins - timeOutsideMins;
+                // Web App geofence tracking is unreliable in the background (when phone sleeps).
+                // Subtracting timeOutsideMins heavily penalizes users who simply close their browser.
+                // We will rely on elapsedMins (Punch Out - Punch In) for duty hours calculation.
+                activeMins = elapsedMins;
                 if (activeMins < 0) activeMins = 0;
 
                 const activeHrs = Math.floor(activeMins / 60);
