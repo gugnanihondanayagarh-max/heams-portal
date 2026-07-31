@@ -66,8 +66,8 @@
         /* Custom calendar stylesheet for employee history screen */
         .calendar-wrapper {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 4px;
             margin-top: 15px;
         }
         .calendar-header-day {
@@ -405,12 +405,13 @@
             <!-- View: History Logs & Calendar -->
             <div id="view-history" class="employee-view" style="display: none;">
                 <div class="row g-4">
-                    <div class="col-md-5">
-                        <div class="glass-card p-4">
-                            <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-calendar-alt"></i> Attendance Calendar</h5>
+                    <div class="col-md-5 mb-4">
+                        <div class="glass-card p-3 p-md-4 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="fw-bold text-brand m-0"><i class="fa-solid fa-calendar-days"></i> Attendance Calendar</h5>
+                            </div>
                             
-                            <!-- Calendar Month/Year Navigator -->
-                            <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3 px-1">
                                 <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="EmployeeApp.changeCalendarMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
                                 <strong id="calendar-month-year-label" class="text-secondary">--</strong>
                                 <button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="EmployeeApp.changeCalendarMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
@@ -430,7 +431,7 @@
                     </div>
 
                     <div class="col-md-7">
-                        <div class="glass-card p-4">
+                        <div class="glass-card p-3 p-md-4">
                             <h5 class="fw-bold text-brand mb-3"><i class="fa-solid fa-list-check"></i> Clock Ledger</h5>
                             <div class="table-responsive" style="max-height: 450px;">
                                 <table class="table table-striped align-middle">
