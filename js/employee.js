@@ -1881,6 +1881,13 @@ const EmployeeApp = {
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const formattedDate = `${parsedDate.getDate().toString().padStart(2, '0')}-${months[parsedDate.getMonth()]}-${parsedDate.getFullYear()}`;
         
+        if (type === "Both" && timeIn && timeOut) {
+            if (timeIn >= timeOut) {
+                Swal.fire({ icon: 'error', title: 'Invalid Times', text: 'Punch Out time must be later than Punch In time.' });
+                return;
+            }
+        }
+        
         const payload = {
             action: "submitPunchCorrection",
             employeeId: Auth.getUserId(),
