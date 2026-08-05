@@ -1257,51 +1257,58 @@ const AdminApp = {
             const res = await API.call({ action: "fetchLedger", targetTable: "Leave" }, false);
             if (res.status === "Success" && res.data) {
                 this.leaveRequestsData = res.data;
-                
-                // Get role info
-                const role = Auth.getRole();
-                const designation = localStorage.getItem("EAMS_designation") || "";
-                const isManager = (role === "Manager") || designation.toLowerCase().includes("manager");
-                const currentUserId = Auth.getUserId().toLowerCase();
-
-                let pending = res.data.filter(l => l.Status === "Pending");
-                
-                // If Manager is logged in, filter to show ONLY employees who have this Manager designated as their ReportingManager
-                if (isManager) {
-                    pending = pending.filter(l => {
-                        const emp = this.employeesData.find(e => e.EmployeeID.toString().toLowerCase() === l.EmployeeID.toString().toLowerCase());
-                        if (!emp || !emp.ReportingManager) return false;
-                        const managers = emp.ReportingManager.split(',').map(m => m.trim().toLowerCase());
-                        return managers.includes(currentUserId);
-                    });
-                }
-                
-                if (pending.length === 0) {
-                    container.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">No pending leaves to review.</td></tr>`;
-                    return;
-                }
-
-                container.innerHTML = pending.map(l => `
-                    <tr>
-                        <td><strong>${l.EmployeeID}</strong></td>
-                        <td>${l.EmployeeName}</td>
-                        <td><span class="badge bg-secondary">${l.Type}</span></td>
-                        <td>${l.StartDate} to ${l.EndDate}</td>
-                        <td>${l.Duration} days</td>
-                        <td>${l.Reason}</td>
-                        <td>
-                            ${l.Attachment ? `<a href="${l.Attachment}" target="_blank" class="btn btn-xs btn-outline-info py-0 px-2" style="font-size: 0.75rem;"><i class="fa-solid fa-file-image"></i> View Proof</a>` : '<span class="text-muted small">None</span>'}
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-success" onclick="AdminApp.reviewLeave('${l.LeaveID}', 'Approved')"><i class="fa-solid fa-check"></i> Approve</button>
-                            <button class="btn btn-sm btn-danger" onclick="AdminApp.reviewLeave('${l.LeaveID}', 'Rejected')"><i class="fa-solid fa-times"></i> Reject</button>
-                        </td>
-                    </tr>
-                `).join('');
+                this.renderLeaveTable();
             }
         } catch (err) {
             container.innerHTML = `<tr><td colspan="8" class="text-center text-danger">Failed to stream leaves requests.</td></tr>`;
         }
+    },
+
+    renderLeaveTable() {
+        const container = document.getElementById("leave-requests-table-body");
+        if (!container) return;
+        if (!this.leaveRequestsData) return;
+
+        // Get role info
+        const role = Auth.getRole();
+        const designation = localStorage.getItem("EAMS_designation") || "";
+        const isManager = (role === "Manager") || designation.toLowerCase().includes("manager");
+        const currentUserId = Auth.getUserId().toLowerCase();
+
+        let pending = this.leaveRequestsData.filter(l => l.Status === "Pending");
+        
+        // If Manager is logged in, filter to show ONLY employees who have this Manager designated as their ReportingManager
+        if (isManager) {
+            pending = pending.filter(l => {
+                const emp = this.employeesData ? this.employeesData.find(e => e.EmployeeID.toString().toLowerCase() === l.EmployeeID.toString().toLowerCase()) : null;
+                if (!emp || !emp.ReportingManager) return false;
+                const managers = emp.ReportingManager.split(',').map(m => m.trim().toLowerCase());
+                return managers.includes(currentUserId);
+            });
+        }
+        
+        if (pending.length === 0) {
+            container.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">No pending leaves to review.</td></tr>`;
+            return;
+        }
+
+        container.innerHTML = pending.map(l => `
+            <tr>
+                <td><strong>${l.EmployeeID}</strong></td>
+                <td>${l.EmployeeName}</td>
+                <td><span class="badge bg-secondary">${l.Type}</span></td>
+                <td>${l.StartDate} to ${l.EndDate}</td>
+                <td>${l.Duration} days</td>
+                <td>${l.Reason}</td>
+                <td>
+                    ${l.Attachment ? `<a href="${l.Attachment}" target="_blank" class="btn btn-xs btn-outline-info py-0 px-2" style="font-size: 0.75rem;"><i class="fa-solid fa-file-image"></i> View Proof</a>` : '<span class="text-muted small">None</span>'}
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-success" onclick="AdminApp.reviewLeave('${l.LeaveID}', 'Approved')"><i class="fa-solid fa-check"></i> Approve</button>
+                    <button class="btn btn-sm btn-danger" onclick="AdminApp.reviewLeave('${l.LeaveID}', 'Rejected')"><i class="fa-solid fa-times"></i> Reject</button>
+                </td>
+            </tr>
+        `).join('');
     },
 
     // Review and mutate leave status
@@ -1414,23 +1421,32 @@ const AdminApp = {
         try {
             const res = await API.call({ action: "fetchLedger", targetTable: "Holiday" }, false);
             if (res.status === "Success" && res.data) {
-                if (res.data.length === 0) {
-                    container.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No holidays registered.</td></tr>`;
-                    return;
-                }
-
-                container.innerHTML = res.data.map(h => `
-                    <tr>
-                        <td><strong>${h.HolidayID}</strong></td>
-                        <td>${h.Date}</td>
-                        <td>${h.Name}</td>
-                        <td>${h.Type}</td>
-                    </tr>
-                `).join('');
+                this.holidaysData = res.data;
+                this.renderHolidaysTable();
             }
         } catch (err) {
             container.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Failed to stream holiday configurations.</td></tr>`;
         }
+    },
+
+    renderHolidaysTable() {
+        const container = document.getElementById("holidays-table-body");
+        if (!container) return;
+        if (!this.holidaysData) return;
+
+        if (this.holidaysData.length === 0) {
+            container.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No holidays registered.</td></tr>`;
+            return;
+        }
+
+        container.innerHTML = this.holidaysData.map(h => `
+            <tr>
+                <td><strong>${h.HolidayID}</strong></td>
+                <td>${h.Date}</td>
+                <td>${h.Name}</td>
+                <td>${h.Type}</td>
+            </tr>
+        `).join('');
     },
 
     // Add holiday config
@@ -1625,7 +1641,7 @@ const AdminApp = {
             const res = await API.call({ action: "fetchCorrections" }, false);
             if (res.status === "Success" && res.data) {
                 this.correctionsData = res.data;
-                this.renderCorrectionRequests(this.correctionsData);
+                this.renderCorrectionsTable();
             } else {
                 container.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-danger">${res.message || 'Failed to load requests.'}</td></tr>`;
             }
@@ -1635,7 +1651,7 @@ const AdminApp = {
         }
     },
 
-    renderCorrectionRequests(requests) {
+    renderCorrectionsTable(requests = this.correctionsData) {
         const container = document.getElementById("corrections-table-body");
         if (!container) return;
 
