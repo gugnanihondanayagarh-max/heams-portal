@@ -9,7 +9,7 @@ const API = {
         if (storedUrl && storedUrl.trim() !== "") {
             return storedUrl.trim();
         }
-        return "https://script.google.com/macros/s/AKfycbxJWlNkW5uFfjDxmzGKeHkb-nqWZitKHbN-F69mE_ZtqqMWxQUwGd8Tp3njj09uK0Kl2Q/exec"; // Replace with deployed Apps Script URL
+        return "https://script.google.com/macros/s/AKfycbyVDHsz-6TpbxDWCluSdZ62g7N8tk1Il3D3mpV6jh5rrl-CR6j1zVq4BIaj3m3eJUGj/exec"; // Replace with deployed Apps Script URL
     },
 
     // Unified secure POST network request wrapper
