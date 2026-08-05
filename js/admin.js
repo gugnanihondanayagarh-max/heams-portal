@@ -628,7 +628,7 @@ const AdminApp = {
             if (res.status === "Success") {
                 this.forceCloseModal("modal-employee-wizard");
                 Swal.fire("Saved", res.message, "success");
-                this.loadEmployeesList();
+                this.loadEmployeesList(true);
             }
         } catch (err) {
             console.error("Failed to mutate employee", err);
@@ -706,7 +706,7 @@ const AdminApp = {
 
                 if (res.status === "Success") {
                     Swal.fire("Deleted", "Employee profile deleted successfully.", "success");
-                    this.loadEmployeesList();
+                    this.loadEmployeesList(true);
                 }
             }
         });
@@ -1205,7 +1205,7 @@ const AdminApp = {
             if (res.status === "Success") {
                 this.forceCloseModal("modal-branch-wizard");
                 Swal.fire("Branch Saved", res.message, "success");
-                this.loadBranchesList();
+                this.loadBranchesList(true);
             }
         } catch (err) {
             console.error("Failed to mutate branch coordinates", err);
@@ -1230,7 +1230,7 @@ const AdminApp = {
 
                 if (res.status === "Success") {
                     Swal.fire("Deleted", "Branch parameters deleted successfully.", "success");
-                    this.loadBranchesList();
+                    this.loadBranchesList(true);
                 }
             }
         });
@@ -1401,7 +1401,7 @@ const AdminApp = {
 
                 if (res.status === "Success") {
                     Swal.fire("Complete", `Leave request has been ${status.toLowerCase()}.`, "success");
-                    this.loadLeaveRequests();
+                    this.loadLeaveRequests(true);
                 } else {
                     Swal.fire("Error", res.message || "Action failed.", "error");
                 }
@@ -1474,7 +1474,7 @@ const AdminApp = {
             if (res.status === "Success") {
                 Swal.fire("Saved", "Holiday record added.", "success").then(() => {
                     document.getElementById("form-add-holiday").reset();
-                    this.loadHolidaysList();
+                    this.loadHolidaysList(true);
                 });
             }
         } catch (err) {
@@ -1735,7 +1735,7 @@ const AdminApp = {
 
                     if (res.status === "Success") {
                         Swal.fire("Processed", res.message, "success").then(() => {
-                            self.loadCorrectionRequests();
+                            self.loadCorrectionRequests(true);
                         });
                     } else {
                         Swal.fire("Transaction Failed", res.message, "error");
