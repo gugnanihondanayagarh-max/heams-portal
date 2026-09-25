@@ -580,9 +580,12 @@ const API = {
         // 4. FETCH HISTORY & LEAVES
         // ----------------------------------------------------
         if (action === "fetchHistory" || action === "getEmployeeHistory") {
-            const empId = payload.employeeId || Auth.getUserId();
-            const data = await this.rest(`attendance?EmployeeID=ilike.${encodeURIComponent(empId)}&order=Created_At.desc&limit=100&select=*`);
-            return { status: "Success", data: data || [] };
+            const empId = (payload.employeeId || Auth.getUserId() || "").trim();
+            const [data, leaves] = await Promise.all([
+                this.rest(`attendance?EmployeeID=ilike.${encodeURIComponent(empId)}&order=Created_At.desc&limit=100&select=*`),
+                this.rest(`leaves?EmployeeID=ilike.${encodeURIComponent(empId)}&Status=eq.Approved&select=*`)
+            ]);
+            return { status: "Success", data: data || [], leaves: leaves || [] };
         }
 
         if (action === "fetchLeaves") {
@@ -955,69 +958,114 @@ const API = {
                             continue;
                         }
 
-                        const log = logMap[dateStr];
-                        if (log) {
-                            const dbStatus = log.Status || "Present";
-                            const hasPunchIn = log.PunchIn && log.PunchIn.trim() !== "" && log.PunchIn !== "--";
-                            const hasPunchOut = log.PunchOut && log.PunchOut.trim() !== "" && log.PunchOut !== "--";
-                            const isToday = checkDate.toDateString() === new Date().toDateString();
-                            const remarks = log.Remarks || "";
+                        const isToday = checkDate.toDateString() === new Date().toDateString();
 
-                            const isManualOverride = dbStatus.indexOf("Half") === 0 || 
-                                                     (dbStatus.indexOf("Absent") === 0 && !dbStatus.includes("Missing")) || 
-                                                     dbStatus.indexOf("Manual") === 0 || 
-                                                     dbStatus.indexOf("Weekly Off") === 0 || 
-                                                     dbStatus.indexOf("Leave") === 0 ||
-                                                     remarks.includes("[Admin") || 
-                                                     remarks.includes("Correction approved");
-
-                            if (!isManualOverride && !hasPunchIn && hasPunchOut) {
-                                rowObj[d.toString()] = "MISS_IN";
-                            } else if (!isManualOverride && hasPunchIn && !hasPunchOut) {
-                                if (isToday) {
-                                    rowObj[d.toString()] = "ACT_IN";
+                        // 1. Priority: Check if an approved Leave or Weekly Off covers this date
+                        let onLeave = false;
+                        let leaveCode = "LV";
+                        for (let l = 0; l < approvedLeaves.length; l++) {
+                            const start = new Date(approvedLeaves[l].StartDate);
+                            const end = new Date(approvedLeaves[l].EndDate);
+                            start.setHours(0, 0, 0, 0);
+                            end.setHours(23, 59, 59, 999);
+                            if (checkDate >= start && checkDate <= end) {
+                                onLeave = true;
+                                if (approvedLeaves[l].Type === "Weekly Off" || approvedLeaves[l].Type === "WO") {
+                                    leaveCode = "WO";
                                 } else {
-                                    rowObj[d.toString()] = "MISS_OUT";
+                                    leaveCode = "LV";
                                 }
-                            } else if (dbStatus.indexOf("Present") === 0 || dbStatus.indexOf("Completed") === 0 || dbStatus.indexOf("Manual") === 0) {
+                                break;
+                            }
+                        }
+
+                        const log = logMap[dateStr];
+                        const dbStatus = log ? (log.Status || "") : "";
+                        const hasPunchIn = !!(log && log.PunchIn && log.PunchIn.toString().trim() !== "" && log.PunchIn !== "--");
+                        const hasPunchOut = !!(log && log.PunchOut && log.PunchOut.toString().trim() !== "" && log.PunchOut !== "--");
+                        const remarks = log ? (log.Remarks || "") : "";
+
+                        // If approved leave / WO exists:
+                        // Unless employee actively worked a full present shift, honor approved leave / WO
+                        if (onLeave) {
+                            if (hasPunchIn && hasPunchOut && dbStatus.indexOf("Present") === 0) {
                                 rowObj[d.toString()] = "P";
-                            } else if (dbStatus.indexOf("Late") === 0) {
-                                rowObj[d.toString()] = "LATE_IN";
-                            } else if (dbStatus.indexOf("Short") === 0) {
-                                rowObj[d.toString()] = "EARLY_P";
-                            } else if (dbStatus.indexOf("Half") === 0) {
-                                rowObj[d.toString()] = "H";
-                            } else if (dbStatus.indexOf("Absent") === 0 || dbStatus.includes("Missing")) {
-                                rowObj[d.toString()] = "MISS_IN";
-                            } else if (dbStatus.indexOf("Weekly Off") === 0) {
-                                rowObj[d.toString()] = "WO";
-                            } else if (dbStatus.indexOf("Leave") === 0) {
-                                rowObj[d.toString()] = "LV";
                             } else {
-                                rowObj[d.toString()] = "P";
+                                rowObj[d.toString()] = leaveCode;
+                            }
+                            continue;
+                        }
+
+                        // 2. Dealership Holiday check (if no active punch)
+                        if (holidayDates.indexOf(dateStr) !== -1 && !hasPunchIn && !hasPunchOut) {
+                            rowObj[d.toString()] = "HL";
+                            continue;
+                        }
+
+                        // Check manual admin overrides
+                        const isManualOverride = dbStatus.indexOf("Manual") === 0 || 
+                                                 remarks.includes("[Admin") || 
+                                                 remarks.includes("Correction approved");
+
+                        // Calculate working minutes if both in and out exist
+                        let workedMin = -1;
+                        if (hasPunchIn && hasPunchOut) {
+                            const parseTimeToMin = (tStr) => {
+                                if (!tStr) return -1;
+                                const m = tStr.toString().match(/(\d{1,2}):(\d{2})/);
+                                if (!m) return -1;
+                                return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+                            };
+                            const inM = parseTimeToMin(log.PunchIn);
+                            const outM = parseTimeToMin(log.PunchOut);
+                            if (inM >= 0 && outM >= 0) {
+                                workedMin = outM - inM;
+                            }
+                        }
+
+                        // 3. Status Evaluation
+                        if (!hasPunchIn && !hasPunchOut) {
+                            // Full day with NO in and NO out
+                            if (isToday) {
+                                rowObj[d.toString()] = "MISS_IN"; // Today pending punch in
+                            } else {
+                                rowObj[d.toString()] = "A"; // Past absent day is 'A' (NOT red IN badge)
+                            }
+                        } else if (!hasPunchIn && hasPunchOut) {
+                            // Missed morning punch in
+                            rowObj[d.toString()] = isManualOverride ? "P" : "MISS_IN";
+                        } else if (hasPunchIn && !hasPunchOut) {
+                            if (isToday) {
+                                if (dbStatus.indexOf("Late") === 0) {
+                                    rowObj[d.toString()] = "LATE_IN"; // Active late today
+                                } else {
+                                    rowObj[d.toString()] = "ACT_IN"; // Active on-time today
+                                }
+                            } else {
+                                rowObj[d.toString()] = isManualOverride ? "P" : "MISS_OUT"; // Past day missing punch out
                             }
                         } else {
-                            let onLeave = false;
-                            let leaveType = "LV";
-                            for (let l = 0; l < approvedLeaves.length; l++) {
-                                const start = new Date(approvedLeaves[l].StartDate);
-                                const end = new Date(approvedLeaves[l].EndDate);
-                                if (checkDate >= start && checkDate <= end) {
-                                    onLeave = true;
-                                    if (approvedLeaves[l].Type === "Weekly Off") {
-                                        leaveType = "WO";
-                                    }
-                                    break;
-                                }
-                            }
-
-                            if (onLeave) {
-                                rowObj[d.toString()] = leaveType;
-                            } else if (holidayDates.indexOf(dateStr) !== -1) {
-                                rowObj[d.toString()] = "HL";
+                            // Both punch in and punch out exist
+                            // If punched near departure time (<45 mins or absent with punch), this was a missed morning punch in
+                            const punchedNearDeparture = (workedMin >= 0 && workedMin < 45) || 
+                                                         (dbStatus.indexOf("Absent") === 0 && (workedMin < 120 || workedMin < 0)) || 
+                                                         dbStatus.includes("Missing");
+                            if (!isManualOverride && punchedNearDeparture) {
+                                rowObj[d.toString()] = "MISS_IN";
+                            } else if (dbStatus.indexOf("Late") === 0) {
+                                rowObj[d.toString()] = "L"; // Completed day late arrival -> yellow text 'L'
+                            } else if (dbStatus.indexOf("Short") === 0) {
+                                rowObj[d.toString()] = "EARLY_P"; // Short Present -> yellow badge 'P'
+                            } else if (dbStatus.indexOf("Half") === 0) {
+                                rowObj[d.toString()] = "H"; // Half Day -> blue badge 'H'
+                            } else if (dbStatus.indexOf("Absent") === 0) {
+                                rowObj[d.toString()] = "A"; // Absent -> red text 'A'
+                            } else if (dbStatus.indexOf("Weekly Off") === 0) {
+                                rowObj[d.toString()] = "WO"; // Weekly Off -> blue text 'WO'
+                            } else if (dbStatus.indexOf("Leave") === 0) {
+                                rowObj[d.toString()] = "LV"; // Leave -> purple text 'LV'
                             } else {
-                                const isToday = checkDate.toDateString() === new Date().toDateString();
-                                rowObj[d.toString()] = isToday ? "MISS_IN" : "A";
+                                rowObj[d.toString()] = "P"; // Full present -> green text 'P'
                             }
                         }
                     }

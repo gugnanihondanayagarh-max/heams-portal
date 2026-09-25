@@ -209,6 +209,7 @@ const EmployeeApp = {
                 // Instant prefetch sync for leaves and WO balance
                 if (res.leaves) {
                     this.personalLeaves = res.leaves;
+                    this.personalApprovedLeaves = (res.leaves || []).filter(l => l.Status === 'Approved');
                     this.personalLeaveBalances = res.leaveBalances;
                     const woBalEl = document.getElementById("leave-balance-wo");
                     if (woBalEl && res.leaveBalances) {
@@ -957,7 +958,9 @@ const EmployeeApp = {
                 const mergedData = Object.values(mergedMap);
 
                 this.personalHistoryLogs = mergedData;
-                this.personalApprovedLeaves = res.leaves || [];
+                this.personalApprovedLeaves = (res.leaves && res.leaves.length > 0) 
+                    ? res.leaves 
+                    : (this.personalLeaves ? this.personalLeaves.filter(l => l.Status === 'Approved') : []);
 
                 // Render both table ledger and calendar for the selected month/year
                 this.renderHistoryTable(this.personalHistoryLogs);
@@ -1001,6 +1004,14 @@ const EmployeeApp = {
 
     // Custom calendar rendering
     renderHistoryCalendar(records, approvedLeaves = []) {
+        if (!approvedLeaves || approvedLeaves.length === 0) {
+            if (this.personalApprovedLeaves && this.personalApprovedLeaves.length > 0) {
+                approvedLeaves = this.personalApprovedLeaves;
+            } else if (this.personalLeaves && this.personalLeaves.length > 0) {
+                approvedLeaves = this.personalLeaves.filter(l => l.Status === 'Approved');
+            }
+        }
+
         const calGrid = document.getElementById("history-calendar-grid");
         if (!calGrid) return;
 
@@ -1079,89 +1090,123 @@ const EmployeeApp = {
             const log = dateMap[dateStr];
             const leaveType = leaveMap[dateStr];
             
-            if (log) {
-                const status = log.Status || "Present";
-                const hasPunchIn = log.PunchIn && log.PunchIn.toString().trim() !== "" && log.PunchIn !== "--";
-                const hasPunchOut = log.PunchOut && log.PunchOut.toString().trim() !== "" && log.PunchOut !== "--";
+            const hasPunchIn = !!(log && log.PunchIn && log.PunchIn.toString().trim() !== "" && log.PunchIn !== "--");
+            const hasPunchOut = !!(log && log.PunchOut && log.PunchOut.toString().trim() !== "" && log.PunchOut !== "--");
+            const status = log ? (log.Status || "") : "";
 
-                if (!hasPunchIn && hasPunchOut) {
+            // Calculate worked minutes if both punches exist
+            let workedMin = -1;
+            if (hasPunchIn && hasPunchOut) {
+                const parseTimeToMin = (tStr) => {
+                    if (!tStr) return -1;
+                    const m = tStr.toString().match(/(\d{1,2}):(\d{2})/);
+                    if (!m) return -1;
+                    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+                };
+                const inM = parseTimeToMin(log.PunchIn);
+                const outM = parseTimeToMin(log.PunchOut);
+                if (inM >= 0 && outM >= 0) workedMin = outM - inM;
+            }
+
+            // 1. Priority: Approved Weekly Off or Leave takes precedence unless actively worked Present
+            if (leaveType && !(hasPunchIn && hasPunchOut && status.includes("Present"))) {
+                if (leaveType === "Weekly Off" || leaveType === "WO") {
+                    statusClass = "weekly-off";
+                    statusLetter = "WO";
+                    statusTooltip = "Weekly Off (Approved)";
+                } else {
+                    statusClass = "absent";
+                    statusLetter = "LV";
+                    statusTooltip = `${leaveType} Leave (Approved)`;
+                }
+            } else if (log) {
+                if (!hasPunchIn && !hasPunchOut) {
+                    if (isToday) {
+                        statusClass = "absent";
+                        statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
+                        statusTooltip = "Pending Punch In Today";
+                    } else {
+                        statusClass = "absent";
+                        statusLetter = "A";
+                        statusTooltip = `Absent (${status || 'No Punches'})`;
+                    }
+                } else if (!hasPunchIn && hasPunchOut) {
                     statusClass = "absent";
                     statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
-                    statusTooltip = `Missed Punch In`;
+                    statusTooltip = "Missed Punch In";
                 } else if (hasPunchIn && !hasPunchOut) {
                     if (isToday) {
                         if (status.includes("Late")) {
                             statusClass = "short";
                             statusLetter = `<span class="badge bg-warning text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.6rem; padding: 0; margin-top:2px; font-weight: bold;">IN</span>`;
-                            statusTooltip = `Late Arrival (Working)`;
+                            statusTooltip = "Late Arrival (Working)";
                         } else {
                             statusClass = "present";
                             statusLetter = `<span class="badge bg-success rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.6rem; padding: 0; margin-top:2px; font-weight: bold;">IN</span>`;
-                            statusTooltip = `Present (Working)`;
+                            statusTooltip = "Present (Working)";
                         }
                     } else {
                         statusClass = "absent";
                         statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">OUT</span>`;
-                        statusTooltip = `Missed Punch Out`;
+                        statusTooltip = "Missed Punch Out";
                     }
-                } else if (status.includes("Late")) {
-                    statusClass = "short";
-                    statusLetter = `<span class="badge bg-warning text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.6rem; padding: 0; margin-top:2px; font-weight: bold;">IN</span>`;
-                    statusTooltip = `Late Arrival`;
-                } else if (status.includes("Short")) {
-                    statusClass = "short";
-                    statusLetter = `<span class="badge bg-warning text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.65rem; padding: 0; margin-top:2px; font-weight: bold;">P</span>`;
-                    statusTooltip = `Short Day (Status: ${status})`;
-                } else if (status.includes("Half")) {
-                    statusClass = "half";
-                    statusLetter = `<span class="badge bg-info text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.65rem; padding: 0; margin-top:2px; font-weight: bold;">H</span>`;
-                    statusTooltip = `Half Day (Status: ${status})`;
-                } else if (status.includes("Present") || status.includes("Completed") || status.includes("Manual")) {
-                    statusClass = "present";
-                    statusLetter = "P";
-                    statusTooltip = `Present (Status: ${status})`;
-                } else if (status.includes("In Progress")) {
-                    statusClass = "present";
-                    statusLetter = "P";
-                    statusTooltip = "In Progress";
                 } else {
-                    statusClass = "absent";
-                    statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
-                    statusTooltip = `Absent (Status: ${status})`;
-                }
-            } else {
-                // Check if approved leave or WO exists for this date first (displays scheduled off-days)
-                if (leaveType) {
-                    if (leaveType === "Weekly Off" || leaveType === "WO") {
+                    // Both Punch In and Punch Out exist
+                    const punchedNearDeparture = (workedMin >= 0 && workedMin < 45) || 
+                                                 (status.indexOf("Absent") === 0 && (workedMin < 120 || workedMin < 0)) || 
+                                                 status.includes("Missing");
+                    if (punchedNearDeparture) {
+                        statusClass = "absent";
+                        statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
+                        statusTooltip = "Missed Morning Punch In";
+                    } else if (status.includes("Late")) {
+                        statusClass = "short";
+                        statusLetter = `<span class="text-warning fw-bold">L</span>`;
+                        statusTooltip = `Late Arrival (${status})`;
+                    } else if (status.includes("Short")) {
+                        statusClass = "short";
+                        statusLetter = `<span class="badge bg-warning text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.65rem; padding: 0; margin-top:2px; font-weight: bold;">P</span>`;
+                        statusTooltip = `Short Day (${status})`;
+                    } else if (status.includes("Half")) {
+                        statusClass = "half";
+                        statusLetter = `<span class="badge bg-info text-dark rounded-circle shadow-sm d-flex align-items-center justify-content-center mx-auto" style="width: 22px; height: 22px; font-size:0.65rem; padding: 0; margin-top:2px; font-weight: bold;">H</span>`;
+                        statusTooltip = `Half Day (${status})`;
+                    } else if (status.includes("Absent")) {
+                        statusClass = "absent";
+                        statusLetter = "A";
+                        statusTooltip = `Absent (${status})`;
+                    } else if (status.includes("Weekly Off")) {
                         statusClass = "weekly-off";
                         statusLetter = "WO";
-                        statusTooltip = "Weekly Off (Approved)";
-                    } else {
+                        statusTooltip = "Weekly Off";
+                    } else if (status.includes("Leave")) {
                         statusClass = "absent";
                         statusLetter = "LV";
-                        statusTooltip = `${leaveType} Leave (Approved)`;
-                    }
-                } else {
-                    // Check if it's a future date
-                    const checkDateOnly = new Date(year, month, day);
-                    const todayOnly = new Date();
-                    todayOnly.setHours(0,0,0,0);
-                    
-                    if (checkDateOnly > todayOnly) {
-                        statusClass = "empty";
-                        statusLetter = "";
-                        statusTooltip = "Future Date";
+                        statusTooltip = "Leave";
                     } else {
-                        if (isToday) {
-                            statusClass = "absent";
-                            statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
-                            statusTooltip = "Missed Punch In";
-                        } else {
-                            statusClass = "absent";
-                            statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
-                            statusTooltip = "Absent";
-                        }
+                        statusClass = "present";
+                        statusLetter = "P";
+                        statusTooltip = `Present (${status})`;
                     }
+                }
+            } else {
+                // No log and no leave
+                const checkDateOnly = new Date(year, month, day);
+                const todayOnly = new Date();
+                todayOnly.setHours(0,0,0,0);
+                
+                if (checkDateOnly > todayOnly) {
+                    statusClass = "empty";
+                    statusLetter = "";
+                    statusTooltip = "Future Date";
+                } else if (isToday) {
+                    statusClass = "absent";
+                    statusLetter = `<span class="badge bg-danger rounded-pill shadow-sm" style="font-size:0.6rem; padding: 2px 6px; margin-top:2px; font-weight: bold; color: white !important;">IN</span>`;
+                    statusTooltip = "Pending Punch In Today";
+                } else {
+                    statusClass = "absent";
+                    statusLetter = "A";
+                    statusTooltip = "Absent";
                 }
             }
 
@@ -1284,45 +1329,78 @@ const EmployeeApp = {
     },
 
     renderLeaveHistoryCache() {
-        // Update WO balance indicator safely
-        const woBalEl = document.getElementById("leave-balance-wo");
-        if (woBalEl) {
-            let woVal = 0;
-            if (this.personalLeaveBalances && this.personalLeaveBalances.weeklyOff !== undefined) {
-                woVal = this.personalLeaveBalances.weeklyOff;
-            } else if (Array.isArray(this.personalLeaves)) {
-                const today = new Date();
-                const curMonth = today.getMonth();
-                const curYear = today.getFullYear();
-                const uniqueWODates = {};
-                this.personalLeaves.forEach(l => {
-                    if (l.Status === "Approved" && (l.Type === "Weekly Off" || l.Type === "WO")) {
-                        let cur = new Date(l.StartDate);
-                        const end = new Date(l.EndDate);
-                        if (!isNaN(cur.getTime()) && !isNaN(end.getTime())) {
-                            cur.setHours(0, 0, 0, 0);
-                            end.setHours(0, 0, 0, 0);
-                            while (cur <= end) {
-                                if (cur.getMonth() === curMonth && cur.getFullYear() === curYear) {
-                                    uniqueWODates[`${cur.getFullYear()}-${cur.getMonth() + 1}-${cur.getDate()}`] = true;
-                                }
-                                cur.setDate(cur.getDate() + 1);
-                            }
-                        }
+        const today = new Date();
+        const curMonth = today.getMonth();
+        const curYear = today.getFullYear();
+
+        // 1. Calculate WO taken in current month and check if 4th WO is auto-skipped
+        let woVal = 0;
+        let hasThreeDayBlock = false;
+        const uniqueWODates = {};
+
+        (this.personalLeaves || []).forEach(l => {
+            if (l.Status === "Approved" && (l.Type === "Weekly Off" || l.Type === "WO")) {
+                let cur = new Date(l.StartDate);
+                const end = new Date(l.EndDate);
+                if (!isNaN(cur.getTime()) && !isNaN(end.getTime())) {
+                    cur.setHours(0, 0, 0, 0);
+                    end.setHours(0, 0, 0, 0);
+                    const dur = Math.round((end - cur) / (1000 * 60 * 60 * 24)) + 1;
+                    if (dur >= 3 && (cur.getMonth() === curMonth && cur.getFullYear() === curYear)) {
+                        hasThreeDayBlock = true;
                     }
-                });
-                woVal = Object.keys(uniqueWODates).length;
+                    while (cur <= end) {
+                        if (cur.getMonth() === curMonth && cur.getFullYear() === curYear) {
+                            uniqueWODates[`${cur.getFullYear()}-${cur.getMonth() + 1}-${cur.getDate()}`] = true;
+                        }
+                        cur.setDate(cur.getDate() + 1);
+                    }
+                }
             }
-            woBalEl.innerText = woVal;
+        });
+        woVal = Object.keys(uniqueWODates).length;
+
+        const woBalEl = document.getElementById("leave-balance-wo");
+        if (woBalEl) woBalEl.innerText = woVal;
+
+        // Auto-skip 4th WO if a 3-day block exists or 3 WOs taken under 15-day duty policy
+        const isQuotaThree = hasThreeDayBlock || woVal >= 3;
+        const quotaEl = document.getElementById("leave-balance-quota");
+        if (quotaEl) quotaEl.innerText = isQuotaThree ? "3" : "4";
+
+        const noteEl = document.getElementById("leave-balance-note");
+        if (noteEl) {
+            if (isQuotaThree) {
+                noteEl.style.display = "block";
+                noteEl.innerText = "(4th Weekly Off auto-skipped for this month)";
+            } else {
+                noteEl.style.display = "none";
+            }
         }
 
+        // 2. Strict Filter: ONLY CURRENT MONTH data visible to employee (wo pending approve history)
         const container = document.getElementById("leave-history-list");
         if (!container) return;
-        if (!this.personalLeaves || this.personalLeaves.length === 0) {
-            container.innerHTML = `<div class="text-center text-muted py-3">No applications lodged.</div>`;
+
+        const currentMonthLeaves = (this.personalLeaves || []).filter(l => {
+            const s = new Date(l.StartDate);
+            const e = new Date(l.EndDate);
+            const inCurMonth = (!isNaN(s.getTime()) && s.getMonth() === curMonth && s.getFullYear() === curYear) ||
+                              (!isNaN(e.getTime()) && e.getMonth() === curMonth && e.getFullYear() === curYear);
+            if (!inCurMonth) return false;
+            // Only show approved applications (or active pending application in current month)
+            return l.Status === "Approved" || l.Status === "Pending";
+        });
+
+        // Show newest first
+        currentMonthLeaves.sort((a, b) => new Date(b.StartDate) - new Date(a.StartDate));
+
+        if (currentMonthLeaves.length === 0) {
+            container.innerHTML = `<div class="text-center text-muted py-3">No approved Weekly Off records for ${today.toLocaleString('default', { month: 'long', year: 'numeric' })}.</div>`;
             return;
         }
-        container.innerHTML = this.personalLeaves.map(l => {
+
+        container.innerHTML = currentMonthLeaves.map(l => {
             let statusBadge = `<span class="badge bg-warning text-dark">Pending</span>`;
             if (l.Status === "Approved") statusBadge = `<span class="badge bg-success">Approved</span>`;
             else if (l.Status === "Rejected") statusBadge = `<span class="badge bg-danger">Rejected</span>`;
@@ -1438,39 +1516,131 @@ const EmployeeApp = {
             return;
         }
 
-        const maxConsecutive = this.checkConsecutiveOffDays(start, end, this.personalLeaves || []);
-
-        // Count employee's worked days (Present + Half Days) in the current month
-        const workedDays = this.attendanceStats ? (this.attendanceStats.present + this.attendanceStats.half) : 0;
-        const halfMonthDutyCompleted = workedDays >= 15;
-
-        // Exempt joining month starting after the 1st
-        let isJoiningMonth = false;
-        const joinDateStr = localStorage.getItem("EAMS_joining_date");
-        if (joinDateStr) {
-            try {
-                const parsedJoin = new Date(joinDateStr);
-                const today = new Date();
-                if (parsedJoin.getMonth() === today.getMonth() && parsedJoin.getFullYear() === today.getFullYear()) {
-                    if (parsedJoin.getDate() > 1) {
-                        isJoiningMonth = true;
-                    }
-                }
-            } catch (e) {}
-        }
-
-        const blockCondition = (maxConsecutive === 3 && !halfMonthDutyCompleted && !isJoiningMonth) || (maxConsecutive >= 4);
-
-        if (blockCondition) {
-            warningMsg.innerText = `Notice: Consecutive off-days block of ${maxConsecutive} days detected. Your direct application limit is exceeded (worked: ${workedDays}/15 days). This request requires administrator approval, and a supervisor recommendation document is required.`;
+        const startDt = new Date(start);
+        const endDt = new Date(end);
+        if (endDt < startDt) {
+            warningMsg.innerText = "Notice: End date cannot be earlier than start date.";
             warningDiv.style.display = "block";
-            attachmentContainer.style.display = "block";
-            fileInput.required = true;
-        } else {
-            warningDiv.style.display = "none";
             attachmentContainer.style.display = "none";
             fileInput.required = false;
+            return;
         }
+
+        const diffTime = Math.abs(endDt - startDt);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const targetMonth = startDt.getMonth();
+        const targetYear = startDt.getFullYear();
+
+        // Count employee's worked days (Present + Half Days) in the current month
+        let workedDays = this.attendanceStats ? ((this.attendanceStats.present || 0) + (this.attendanceStats.half || 0)) : 0;
+        if (workedDays === 0 && Array.isArray(this.personalHistoryLogs)) {
+            this.personalHistoryLogs.forEach(h => {
+                const d = this.normalizeSheetDate(h.Date);
+                if (d && d.getMonth() === targetMonth && d.getFullYear() === targetYear) {
+                    const st = h.Status || "";
+                    if (st.includes("Present") || st.includes("Completed") || st.includes("Manual") || st.includes("Late")) {
+                        workedDays += 1;
+                    } else if (st.includes("Half")) {
+                        workedDays += 0.5;
+                    }
+                }
+            });
+        }
+        const halfMonthDutyCompleted = workedDays >= 15;
+
+        // Check if a 3-day WO already exists this month
+        const hasThreeDayWOInMonth = (this.personalLeaves || []).some(l => {
+            if (l.Status !== "Rejected" && (l.Type === "Weekly Off" || l.Type === "WO")) {
+                const s = new Date(l.StartDate);
+                const e = new Date(l.EndDate);
+                if (!isNaN(s.getTime()) && !isNaN(e.getTime()) && s.getMonth() === targetMonth && s.getFullYear() === targetYear) {
+                    return (Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1) >= 3;
+                }
+            }
+            return false;
+        });
+
+        if (diffDays >= 4) {
+            warningMsg.innerText = "Notice: You cannot request 4 Weekly Offs in a single application. Maximum allowed is up to 3 days (after 15 days duty).";
+            warningDiv.style.display = "block";
+            attachmentContainer.style.display = "none";
+            fileInput.required = false;
+            return;
+        }
+
+        if (diffDays === 3) {
+            if (!halfMonthDutyCompleted) {
+                warningMsg.innerText = `Notice: 15 days duty required to apply for a 3-day Weekly Off (Current duty: ${Math.floor(workedDays)}/15 days).`;
+                warningDiv.style.display = "block";
+                attachmentContainer.style.display = "none";
+                fileInput.required = false;
+                return;
+            } else {
+                warningMsg.innerText = "Notice: 15 days duty completed. 3-day Weekly Off permitted. Note: The 4th Weekly Off will be auto-skipped for this month.";
+                warningDiv.style.display = "block";
+                attachmentContainer.style.display = "none";
+                fileInput.required = false;
+                return;
+            }
+        }
+
+        if (hasThreeDayWOInMonth) {
+            warningMsg.innerText = "Notice: Under the 15-day duty policy, a 3-day Weekly Off was already used. The 4th Weekly Off is auto-skipped for this month.";
+            warningDiv.style.display = "block";
+            attachmentContainer.style.display = "none";
+            fileInput.required = false;
+            return;
+        }
+
+        const maxConsecutive = this.checkConsecutiveOffDays(start, end, this.personalLeaves || []);
+
+        // Rule 1: 4 continuous days of WO is strictly prohibited
+        if (diffDays >= 4 || maxConsecutive >= 4) {
+            warningMsg.innerText = "Notice: 4 continuous Weekly Off days are prohibited. (2 days WO, then present, then 2 days WO is allowed, but not 4 continuous days).";
+            warningDiv.style.display = "block";
+            attachmentContainer.style.display = "none";
+            fileInput.required = false;
+            return;
+        }
+
+        // Rule 2: If duty < 15 days, maximum 2 continuous days at a time
+        if (!halfMonthDutyCompleted && diffDays > 2) {
+            warningMsg.innerText = `Notice: Duty is under 15 days (current: ${Math.floor(workedDays)}/15 days). You can only apply for maximum 2 continuous Weekly Off days at a time.`;
+            warningDiv.style.display = "block";
+            attachmentContainer.style.display = "none";
+            fileInput.required = false;
+            return;
+        }
+
+        // Rule 3: 3 continuous days converts absent to WO (requires 15 days duty), but auto-skips 4th WO
+        if (diffDays === 3 || maxConsecutive === 3) {
+            if (!halfMonthDutyCompleted) {
+                warningMsg.innerText = `Notice: 15 days duty required to apply for 3 continuous Weekly Off days (Current duty: ${Math.floor(workedDays)}/15 days).`;
+                warningDiv.style.display = "block";
+                attachmentContainer.style.display = "none";
+                fileInput.required = false;
+                return;
+            } else {
+                warningMsg.innerText = "Notice: 15 days duty completed. 3 continuous Weekly Off days eligible. Note: The 4th Weekly Off will be auto-skipped for this month.";
+                warningDiv.style.display = "block";
+                attachmentContainer.style.display = "none";
+                fileInput.required = false;
+                return;
+            }
+        }
+
+        // Rule 4: If a 3-day continuous block already exists, 4th is auto-skipped
+        if (hasThreeDayWOInMonth) {
+            warningMsg.innerText = "Notice: Under dealership policy, taking a 3-day continuous Weekly Off auto-skips the 4th Weekly Off for this month.";
+            warningDiv.style.display = "block";
+            attachmentContainer.style.display = "none";
+            fileInput.required = false;
+            return;
+        }
+
+        warningDiv.style.display = "none";
+        attachmentContainer.style.display = "none";
+        fileInput.required = false;
     },
 
     // Rebuild Leave / WO request submit flow
@@ -1493,7 +1663,7 @@ const EmployeeApp = {
         const fileInput = document.getElementById("leave-proof");
 
         if (!start || !end || !reason) {
-            Swal.fire("Details Missing", "Please complete all leave parameters.", "warning");
+            Swal.fire("Details Missing", "Please complete all Weekly Off parameters.", "warning");
             this.submittingLeave = false;
             if (submitBtn) {
                 submitBtn.disabled = false;
@@ -1502,12 +1672,137 @@ const EmployeeApp = {
             return;
         }
 
-        // Evaluate status: auto-approve standard WO else require admin review
+        const startDt = new Date(start);
+        const endDt = new Date(end);
+        if (endDt < startDt) {
+            Swal.fire("Invalid Date Range", "End date cannot be earlier than start date.", "warning");
+            this.submittingLeave = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> File Application`;
+            }
+            return;
+        }
+
+        const diffTime = Math.abs(endDt - startDt);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const targetMonth = startDt.getMonth();
+        const targetYear = startDt.getFullYear();
+
+        // Count duty days worked in the month
+        let workedDays = this.attendanceStats ? ((this.attendanceStats.present || 0) + (this.attendanceStats.half || 0)) : 0;
+        if (workedDays === 0 && Array.isArray(this.personalHistoryLogs)) {
+            this.personalHistoryLogs.forEach(h => {
+                const d = this.normalizeSheetDate(h.Date);
+                if (d && d.getMonth() === targetMonth && d.getFullYear() === targetYear) {
+                    const st = h.Status || "";
+                    if (st.includes("Present") || st.includes("Completed") || st.includes("Manual") || st.includes("Late")) {
+                        workedDays += 1;
+                    } else if (st.includes("Half")) {
+                        workedDays += 0.5;
+                    }
+                }
+            });
+        }
+        const halfMonthDutyCompleted = workedDays >= 15;
+
+        // Collect existing WOs for target month
+        const uniqueWODates = {};
+        let hasThreeDayWOInMonth = false;
+        (this.personalLeaves || []).forEach(l => {
+            if (l.Status !== "Rejected" && (l.Type === "Weekly Off" || l.Type === "WO")) {
+                let cur = new Date(l.StartDate);
+                const e = new Date(l.EndDate);
+                if (!isNaN(cur.getTime()) && !isNaN(e.getTime())) {
+                    cur.setHours(0, 0, 0, 0);
+                    e.setHours(0, 0, 0, 0);
+                    const dur = Math.round((e - cur) / (1000 * 60 * 60 * 24)) + 1;
+                    if (dur >= 3 && (cur.getMonth() === targetMonth && cur.getFullYear() === targetYear)) {
+                        hasThreeDayWOInMonth = true;
+                    }
+                    while (cur <= e) {
+                        if (cur.getMonth() === targetMonth && cur.getFullYear() === targetYear) {
+                            uniqueWODates[`${cur.getFullYear()}-${cur.getMonth() + 1}-${cur.getDate()}`] = true;
+                        }
+                        cur.setDate(cur.getDate() + 1);
+                    }
+                }
+            }
+        });
+        const usedWoInMonth = Object.keys(uniqueWODates).length;
+        const maxConsecutive = this.checkConsecutiveOffDays(start, end, this.personalLeaves || []);
+
+        // Rule 1: 4 continuous days of WO is strictly prohibited
+        if (diffDays >= 4 || maxConsecutive >= 4) {
+            Swal.fire("Continuous Off Limit Exceeded", "4 continuous Weekly Off days cannot be taken. (2 days WO, then present, then 2 days WO is allowed, but not 4 continuous days).", "error");
+            this.submittingLeave = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> File Application`;
+            }
+            return;
+        }
+
+        // Rule 2: If duty < 15 days, maximum 2 continuous days at a time
+        if (!halfMonthDutyCompleted && diffDays > 2) {
+            Swal.fire("Duty Under 15 Days", `When duty is under 15 days (current: ${Math.floor(workedDays)}/15 days), you can only apply for maximum 2 continuous Weekly Off days at a time.`, "warning");
+            this.submittingLeave = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> File Application`;
+            }
+            return;
+        }
+
+        // Rule 3: 3 continuous days converts absent to WO (requires 15 days duty), but auto-skips 4th WO
+        if (diffDays === 3 || maxConsecutive === 3) {
+            if (!halfMonthDutyCompleted) {
+                Swal.fire("Duty Requirement Not Met", `You must complete at least 15 days of duty before applying for 3 continuous Weekly Off days (Current duty: ${Math.floor(workedDays)}/15 days).`, "warning");
+                this.submittingLeave = false;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> File Application`;
+                }
+                return;
+            }
+            // If taking 3 continuous days, 4th is auto-skipped, so total for month cannot exceed 3 days!
+            if (usedWoInMonth > 0) {
+                Swal.fire("Monthly Limit Exceeded", `Taking 3 continuous Weekly Offs auto-skips the 4th Weekly Off for the month (maximum 3 days allowed). You already have ${usedWoInMonth} day(s) utilized/filed this month.`, "error");
+                this.submittingLeave = false;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> File Application`;
+                }
+                return;
+            }
+        }
+
+        // Rule 4: If employee already took a 3-day continuous block in this month, 4th is auto-skipped
+        if (hasThreeDayWOInMonth) {
+            Swal.fire("4th Weekly Off Auto-Skipped", "Since a 3-day continuous Weekly Off was utilized for this month, the 4th Weekly Off is auto-skipped. No further Weekly Off can be applied this month.", "info");
+            this.submittingLeave = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> File Application`;
+            }
+            return;
+        }
+
+        // Rule 5: Normal monthly quota is 4 days (e.g. 2 days earlier + 2 days later)
+        if (usedWoInMonth + diffDays > 4) {
+            Swal.fire("Monthly Quota Exceeded", `Monthly Weekly Off quota is 4 days per month. You have already utilized/filed ${usedWoInMonth} day(s) this month. You cannot request ${diffDays} more day(s).`, "error");
+            this.submittingLeave = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> File Application`;
+            }
+            return;
+        }
+
+        // Evaluate status: auto-approve standard WO (<=2 days or 3 days with 15-day duty) else require admin review
         let status = "Pending";
         if (type === "Weekly Off") {
             const maxConsecutive = this.checkConsecutiveOffDays(start, end, this.personalLeaves || []);
-            const workedDays = this.attendanceStats ? (this.attendanceStats.present + this.attendanceStats.half) : 0;
-            const halfMonthDutyCompleted = workedDays >= 15;
             
             let isJoiningMonth = false;
             const joinDateStr = localStorage.getItem("EAMS_joining_date");
@@ -1525,7 +1820,7 @@ const EmployeeApp = {
 
             const blockCondition = (maxConsecutive === 3 && !halfMonthDutyCompleted && !isJoiningMonth) || (maxConsecutive >= 4);
             if (!blockCondition) {
-                status = "Approved"; // Apply and approve directly!
+                status = "Approved"; // Auto-approve if 15-day duty completed for 3 days or regular <= 2 days!
             }
         }
 

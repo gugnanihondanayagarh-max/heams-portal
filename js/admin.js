@@ -2241,14 +2241,34 @@ const AdminApp = {
 
                     if (checkDate > today) continue;
 
+                    // Check approved leaves first
+                    let leaveMatched = null;
+                    for (let l = 0; l < approvedLeaves.length; l++) {
+                        const start = new Date(approvedLeaves[l]._startISO);
+                        const end   = new Date(approvedLeaves[l]._endISO);
+                        start.setHours(0,0,0,0);
+                        end.setHours(23,59,59,999);
+                        if (checkDate >= start && checkDate <= end) {
+                            leaveMatched = approvedLeaves[l].Type || "Leave";
+                            break;
+                        }
+                    }
+
                     const log = logMap[dateKey]; // dateKey is already YYYY-MM-DD
                     if (log) {
-                        // Mirror backend Matrix status classification exactly
                         const dbStatus = log.Status || "Present";
+                        const hasPunchIn = !!(log.PunchIn && log.PunchIn.toString().trim() !== "" && log.PunchIn !== "--");
+                        const hasPunchOut = !!(log.PunchOut && log.PunchOut.toString().trim() !== "" && log.PunchOut !== "--");
+
+                        let finalStatus = dbStatus;
+                        // If approved leave exists and employee did not actively work full Present
+                        if (leaveMatched && !(hasPunchIn && hasPunchOut && dbStatus.startsWith("Present"))) {
+                            finalStatus = (leaveMatched === "Weekly Off" || leaveMatched === "WO") ? "Weekly Off" : `On Leave (${leaveMatched})`;
+                        }
 
                         rows.push({
                             date: dateKey,
-                            status: dbStatus,
+                            status: finalStatus,
                             punchIn: log.PunchIn || "--",
                             punchOut: log.PunchOut || "--",
                             workingHours: log.WorkingHours || "--",
@@ -2256,20 +2276,7 @@ const AdminApp = {
                             attId: log.AttendanceID || ""
                         });
                     } else {
-                        // No attendance record  check approved leaves (normalized dates)
-                        let leaveText = "Absent";
-                        for (let l = 0; l < approvedLeaves.length; l++) {
-                            const start = new Date(approvedLeaves[l]._startISO);
-                            const end   = new Date(approvedLeaves[l]._endISO);
-                            start.setHours(0,0,0,0);
-                            end.setHours(23,59,59,999);
-                            if (checkDate >= start && checkDate <= end) {
-                                const lType = approvedLeaves[l].Type || "Leave";
-                                leaveText = `On Leave (${lType})`;
-                                break;
-                            }
-                        }
-
+                        let leaveText = leaveMatched ? ((leaveMatched === "Weekly Off" || leaveMatched === "WO") ? "Weekly Off" : `On Leave (${leaveMatched})`) : "Absent";
                         rows.push({
                             date: dateKey,
                             status: leaveText,
