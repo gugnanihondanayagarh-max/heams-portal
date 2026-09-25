@@ -34,11 +34,11 @@ const Auth = {
     startSession(data, rememberMe) {
         const timestamp = Date.now();
         localStorage.setItem("EAMS_logged_in", "true");
-        localStorage.setItem("EAMS_token", data.token);
-        localStorage.setItem("EAMS_role", data.role);
+        localStorage.setItem("EAMS_token", data.token || "");
+        localStorage.setItem("EAMS_role", data.role || "Employee");
         localStorage.setItem("EAMS_is_manager", data.isManager || "No");
-        localStorage.setItem("EAMS_username", data.employeeName || data.username);
-        localStorage.setItem("EAMS_id", data.employeeId || data.username);
+        localStorage.setItem("EAMS_username", data.employeeName || data.name || data.username || "User");
+        localStorage.setItem("EAMS_id", data.employeeId || data.userId || data.username || "");
         localStorage.setItem("EAMS_last_active", timestamp.toString());
         
         if (data.branch) {
@@ -64,7 +64,7 @@ const Auth = {
         }
 
         if (rememberMe) {
-            localStorage.setItem("EAMS_remembered_user", data.employeeId || data.username);
+            localStorage.setItem("EAMS_remembered_user", data.employeeId || data.userId || data.username || "");
         } else {
             localStorage.removeItem("EAMS_remembered_user");
         }
@@ -89,29 +89,39 @@ const Auth = {
         }
     },
 
-    // Check if user is currently logged in
+    // Check if user is currently logged in with valid session ID
     isLoggedIn() {
-        return localStorage.getItem("EAMS_logged_in") === "true";
+        const logged = localStorage.getItem("EAMS_logged_in") === "true";
+        const id = localStorage.getItem("EAMS_id");
+        return logged && id && id !== "undefined" && id !== "null" && id.trim() !== "";
     },
 
     // Get current role
     getRole() {
-        return localStorage.getItem("EAMS_role");
+        return localStorage.getItem("EAMS_role") || "Employee";
     },
 
     // Get session token
     getToken() {
-        return localStorage.getItem("EAMS_token");
+        return localStorage.getItem("EAMS_token") || "";
     },
 
     // Get user descriptive name
     getUserName() {
-        return localStorage.getItem("EAMS_username") || "User";
+        const name = localStorage.getItem("EAMS_username");
+        if (!name || name === "undefined" || name === "null" || name.trim() === "") {
+            return "User";
+        }
+        return name.trim();
     },
 
     // Get user identity key
     getUserId() {
-        return localStorage.getItem("EAMS_id") || "";
+        const id = localStorage.getItem("EAMS_id");
+        if (!id || id === "undefined" || id === "null") {
+            return "";
+        }
+        return id.trim();
     },
 
     // Clear session memory

@@ -224,7 +224,11 @@
                 </div>
                 <h4 class="brand-title">EAMS</h4>
             </div>
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <button id="btn-sync-emp" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 py-1 px-2" title="Click to Sync Now / Toggle Auto-Sync">
+                    <i class="fa-solid fa-arrows-rotate" id="icon-sync-emp"></i>
+                    <span class="d-none d-sm-inline small fw-semibold" id="text-sync-emp">Sync: ON</span>
+                </button>
                 <button id="theme-toggle-emp" class="theme-toggle-btn"><i class="fa-solid fa-moon"></i></button>
                 <button class="btn btn-sm btn-outline-danger" onclick="Auth.logout()"><i class="fa-solid fa-power-off"></i></button>
             </div>
@@ -388,6 +392,7 @@
 
                             <!-- Remarks & Punch options -->
                             <div class="w-100">
+                                <div id="punch-today-alert" class="mb-3" style="display: none;"></div>
                                 <textarea id="punch-remarks" class="form-input-brand mb-3" rows="2" placeholder="Optional remarks/notes..."></textarea>
                                 <div class="row g-2">
                                     <div class="col-6">
@@ -761,10 +766,10 @@
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Core Modules -->
-    <script src="js/utils.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/employee.js?v=14"></script>
+    <script src="js/utils.js?v=18"></script>
+    <script src="js/api.js?v=18"></script>
+    <script src="js/auth.js?v=18"></script>
+    <script src="js/employee.js?v=18"></script>
     
     <!-- Login router gate controller -->
     <script>

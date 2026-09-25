@@ -10,6 +10,9 @@ const AdminApp = {
     employeesData: [],
     branchesData: [],
     attendanceData: [],
+    autoSyncInterval: null,
+    autoSyncEnabled: true,
+    isSyncing: false,
 
     // Initialize Admin panel
     init() {
@@ -19,10 +22,16 @@ const AdminApp = {
         this.bindEvents();
         this.switchTab("dashboard");
         this.loadDashboardStats();
+        this.startAutoSync();
     },
 
     // UI event bindings
     bindEvents() {
+        // Auto-sync manual button
+        document.getElementById("btn-sync-admin")?.addEventListener("click", () => {
+            this.triggerSync(false);
+        });
+
         // Sidebar tabs switcher
         document.querySelectorAll(".sidebar-link").forEach(link => {
             link.addEventListener("click", (e) => {
@@ -256,6 +265,93 @@ const AdminApp = {
             }
         } catch (err) {
             console.error("Dashboard stats failed to refresh", err);
+        }
+    },
+
+    // Auto-sync engine for real-time live data synchronization
+    startAutoSync() {
+        if (this.autoSyncInterval) clearInterval(this.autoSyncInterval);
+
+        // Auto background poll every 15 seconds
+        this.autoSyncInterval = setInterval(() => {
+            if (!this.autoSyncEnabled || this.isSyncing) return;
+            if (document.visibilityState === 'hidden') return;
+            if (!Auth.getUserId()) return;
+            this.triggerSync(true);
+        }, 15000);
+
+        // Instant refresh when user returns to tab
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'visible' && this.autoSyncEnabled && !this.isSyncing && Auth.getUserId()) {
+                this.triggerSync(true);
+            }
+        });
+    },
+
+    async triggerSync(isSilent = false) {
+        if (this.isSyncing) return;
+        this.isSyncing = true;
+
+        const iconSync = document.getElementById("icon-sync-admin");
+        const textSync = document.getElementById("text-sync-admin");
+        if (iconSync) iconSync.classList.add("fa-spin");
+        if (textSync && !isSilent) textSync.innerText = "Syncing...";
+
+        try {
+            // Always refresh metrics cards and charts in background
+            await this.loadDashboardStats(true);
+
+            // Also refresh data for the currently visible tab
+            switch (this.activeTab) {
+                case "matrix-dashboard":
+                    await this.loadDashboardMatrix(true);
+                    break;
+                case "attendance":
+                    await this.loadAttendanceLedger(true);
+                    break;
+                case "leave":
+                    await this.loadLeaveRequests(true);
+                    break;
+                case "corrections":
+                    await this.loadCorrectionRequests(true);
+                    break;
+                case "employees":
+                    await this.loadEmployeesList(true);
+                    break;
+                case "branches":
+                    await this.loadBranchesList(true);
+                    break;
+                default:
+                    break;
+            }
+
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            if (textSync) textSync.innerText = `Synced ${timeStr}`;
+
+            if (!isSilent && typeof Swal !== "undefined") {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: false
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Terminal synchronized'
+                });
+            }
+        } catch (err) {
+            console.error("Admin auto-sync error:", err);
+            if (textSync) textSync.innerText = "Sync Failed";
+        } finally {
+            this.isSyncing = false;
+            if (iconSync) {
+                setTimeout(() => {
+                    iconSync.classList.remove("fa-spin");
+                }, 400);
+            }
         }
     },
 
@@ -749,7 +845,9 @@ const AdminApp = {
             return;
         }
         const container = document.getElementById("attendance-table-body");
-        container.innerHTML = `<tr><td colspan="9" class="text-center py-4"><div class="spinner-border text-danger"></div></td></tr>`;
+        if (!this.attendanceData || this.attendanceData.length === 0) {
+            container.innerHTML = `<tr><td colspan="9" class="text-center py-4"><div class="spinner-border text-danger"></div></td></tr>`;
+        }
 
         try {
             const res = await API.call({ action: "fetchLedger", targetTable: "Attendance" }, false);
@@ -1243,7 +1341,9 @@ const AdminApp = {
             return;
         }
         const container = document.getElementById("leave-requests-table-body");
-        container.innerHTML = `<tr><td colspan="8" class="text-center py-4"><div class="spinner-border text-danger"></div></td></tr>`;
+        if (!this.leaveRequestsData || this.leaveRequestsData.length === 0) {
+            container.innerHTML = `<tr><td colspan="8" class="text-center py-4"><div class="spinner-border text-danger"></div></td></tr>`;
+        }
 
         try {
             // Make sure employees list is loaded so we have the ReportingManager relations
@@ -1635,7 +1735,9 @@ const AdminApp = {
         const container = document.getElementById("corrections-table-body");
         if (!container) return;
 
-        container.innerHTML = `<tr><td colspan="11" class="text-center py-4"><div class="spinner-border text-danger"></div></td></tr>`;
+        if (!this.correctionsData || this.correctionsData.length === 0) {
+            container.innerHTML = `<tr><td colspan="11" class="text-center py-4"><div class="spinner-border text-danger"></div></td></tr>`;
+        }
 
         try {
             const res = await API.call({ action: "fetchCorrections" }, false);
@@ -1846,7 +1948,9 @@ const AdminApp = {
             return;
         }
 
-        containerRows.innerHTML = `<tr><td colspan="10" class="text-center py-4"><div class="spinner-border text-danger"></div></td></tr>`;
+        if (!this.matrixCachedData) {
+            containerRows.innerHTML = `<tr><td colspan="10" class="text-center py-4"><div class="spinner-border text-danger"></div></td></tr>`;
+        }
         
         try {
             // Fetch employees database cache if empty

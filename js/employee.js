@@ -16,6 +16,11 @@ const EmployeeApp = {
     personalHistoryLogs: [],
     personalApprovedLeaves: [],
 
+    currentActiveView: "dashboard",
+    autoSyncInterval: null,
+    autoSyncEnabled: true,
+    isSyncing: false,
+
     // Initialize Employee panel
     async init() {
         if (this.initialized) return;
@@ -39,10 +44,15 @@ const EmployeeApp = {
         }
 
         await this.loadDashboardData();
+        this.startAutoSync();
     },
 
     // Event Bindings
     bindEvents() {
+        // Manual Auto-Sync button
+        document.getElementById("btn-sync-emp")?.addEventListener("click", () => {
+            this.triggerSync(false);
+        });
         // Navigation clicks
         document.querySelectorAll(".bottom-nav-link").forEach(link => {
             link.addEventListener("click", (e) => {
@@ -105,6 +115,7 @@ const EmployeeApp = {
 
     // Switch active view sections
     switchView(viewId) {
+        this.currentActiveView = viewId;
         document.querySelectorAll(".employee-view").forEach(section => {
             section.style.display = "none";
         });
@@ -145,38 +156,75 @@ const EmployeeApp = {
     // Fetch and render employee dashboard statistics
     async loadDashboardData() {
         try {
+            const currentUserId = Auth.getUserId();
+            if (!currentUserId) {
+                console.warn("Invalid or missing user session ID. Please log in again.");
+                Auth.logout();
+                return;
+            }
+
             document.getElementById("employee-welcome-name").innerText = Auth.getUserName();
             
             const res = await API.call({
                 action: "getEmployeeDashboard",
-                employeeId: Auth.getUserId()
+                employeeId: currentUserId
             }, false);
 
             if (res.status === "Success") {
                 this.assignedBranch = res.branchDetails;
+
+                // Sync and display official employee name
+                const officialName = res.employeeName || (res.empInfo && res.empInfo.Name) || (res.employeeData && res.employeeData.Name);
+                if (officialName) {
+                    document.getElementById("employee-welcome-name").innerText = officialName;
+                    localStorage.setItem("EAMS_username", officialName);
+                }
+
+                // Sync profile metadata if available
+                const empMeta = res.empInfo || res.employeeData;
+                if (empMeta) {
+                    if (empMeta.Branch) localStorage.setItem("EAMS_branch", empMeta.Branch);
+                    if (empMeta.Department) localStorage.setItem("EAMS_department", empMeta.Department);
+                    if (empMeta.Designation) localStorage.setItem("EAMS_designation", empMeta.Designation);
+                    if (empMeta.BankName) localStorage.setItem("EAMS_bank_name", empMeta.BankName);
+                    if (empMeta.AccountNumber) localStorage.setItem("EAMS_bank_acc", empMeta.AccountNumber);
+                    if (empMeta.IFSCCode) localStorage.setItem("EAMS_bank_ifsc", empMeta.IFSCCode);
+                    if (empMeta.BankBranch) localStorage.setItem("EAMS_bank_branch", empMeta.BankBranch);
+                    if (empMeta.JoiningDate) localStorage.setItem("EAMS_joining_date", empMeta.JoiningDate);
+                }
                 
                 if (res.employeeData && res.employeeData.ProfilePhoto) {
                     localStorage.setItem("EAMS_profile_photo", res.employeeData.ProfilePhoto);
                     this.updateProfilePhotoUI(res.employeeData.ProfilePhoto);
                 }
-                this.attendanceStats = res.stats;
+                this.attendanceStats = res.stats || { present: 0, absent: 0, late: 0, leaves: 0, half: 0 };
                 
                 // Set stats cards text
-                document.getElementById("stat-present").innerText = res.stats.present;
-                document.getElementById("stat-absent").innerText = res.stats.absent;
-                document.getElementById("stat-late").innerText = res.stats.late;
-                document.getElementById("stat-leaves").innerText = res.stats.leaves;
-                document.getElementById("stat-half").innerText = res.stats.half;
+                document.getElementById("stat-present").innerText = this.attendanceStats.present || 0;
+                document.getElementById("stat-absent").innerText = this.attendanceStats.absent || 0;
+                document.getElementById("stat-late").innerText = this.attendanceStats.late || 0;
+                document.getElementById("stat-leaves").innerText = this.attendanceStats.leaves || 0;
+                document.getElementById("stat-half").innerText = this.attendanceStats.half || 0;
+
+                // Instant prefetch sync for leaves and WO balance
+                if (res.leaves) {
+                    this.personalLeaves = res.leaves;
+                    this.personalLeaveBalances = res.leaveBalances;
+                    const woBalEl = document.getElementById("leave-balance-wo");
+                    if (woBalEl && res.leaveBalances) {
+                        woBalEl.innerText = res.leaveBalances.weeklyOff || 0;
+                    }
+                }
 
                 // Render circular attendance percentage
-                const totalWorking = res.stats.present + res.stats.absent;
-                const percentage = totalWorking > 0 ? Math.round((res.stats.present / totalWorking) * 100) : 100;
+                const totalWorking = (this.attendanceStats.present || 0) + (this.attendanceStats.absent || 0);
+                const percentage = totalWorking > 0 ? Math.round(((this.attendanceStats.present || 0) / totalWorking) * 100) : 100;
                 this.updateCircularProgress(percentage);
 
                 // Render Branch info cards
                 if (this.assignedBranch) {
-                    document.getElementById("dash-branch-name").innerText = this.assignedBranch.BranchName;
-                    document.getElementById("dash-office-timing").innerText = `${this.assignedBranch.OfficeStart} - ${this.assignedBranch.OfficeEnd}`;
+                    document.getElementById("dash-branch-name").innerText = this.assignedBranch.BranchName || "--";
+                    document.getElementById("dash-office-timing").innerText = `${this.assignedBranch.OfficeStart || "09:30"} - ${this.assignedBranch.OfficeEnd || "19:30"}`;
                 }
 
                 // Render Punch Status
@@ -196,13 +244,88 @@ const EmployeeApp = {
                 }
 
                 // Render Recent activities
-                this.renderRecentActivities(res.recentPunches);
+                this.renderRecentActivities(res.recentPunches || []);
                 
+                // Keep punch state banner updated
+                this.updatePunchScreenState();
+
                 // Start background foreground alarm tracker
                 this.startOverdueAlarmTracker();
             }
         } catch (err) {
             console.error("Failed to load dashboard metrics", err);
+        }
+    },
+
+    // Background Auto-Sync loop
+    startAutoSync() {
+        if (this.autoSyncInterval) clearInterval(this.autoSyncInterval);
+
+        // Auto background poll every 15 seconds
+        this.autoSyncInterval = setInterval(() => {
+            if (!this.autoSyncEnabled || this.isSyncing) return;
+            if (document.visibilityState === 'hidden') return;
+            if (!Auth.getUserId()) return;
+            this.triggerSync(true);
+        }, 15000);
+
+        // Immediate background sync when employee reopens tab
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'visible' && this.autoSyncEnabled && !this.isSyncing && Auth.getUserId()) {
+                this.triggerSync(true);
+            }
+        });
+    },
+
+    // Trigger on-demand or background sync
+    async triggerSync(isSilent = false) {
+        if (this.isSyncing) return;
+        this.isSyncing = true;
+
+        const iconSync = document.getElementById("icon-sync-emp");
+        const textSync = document.getElementById("text-sync-emp");
+        if (iconSync) iconSync.classList.add("fa-spin");
+        if (textSync && !isSilent) textSync.innerText = "Syncing...";
+
+        try {
+            // Refresh dashboard data and active view concurrently for instant speed
+            const syncTasks = [this.loadDashboardData()];
+            if (this.currentActiveView === "history") {
+                syncTasks.push(this.loadHistoryView(true));
+            } else if (this.currentActiveView === "approvals") {
+                syncTasks.push(this.loadManagerApprovalsQueue(true));
+            } else if (this.currentActiveView === "leave") {
+                syncTasks.push(this.loadLeaveView(true));
+            }
+            await Promise.all(syncTasks);
+
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            if (textSync) textSync.innerText = `Synced ${timeStr}`;
+
+            if (!isSilent && typeof Swal !== "undefined") {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: false
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Data synchronized'
+                });
+            }
+        } catch (err) {
+            console.error("Employee auto-sync error:", err);
+            if (textSync) textSync.innerText = "Sync Failed";
+        } finally {
+            this.isSyncing = false;
+            if (iconSync) {
+                setTimeout(() => {
+                    iconSync.classList.remove("fa-spin");
+                }, 400);
+            }
         }
     },
 
@@ -266,6 +389,66 @@ const EmployeeApp = {
         }).join('');
     },
 
+    // Update punch screen status banner & button availability
+    updatePunchScreenState() {
+        const alertBox = document.getElementById("punch-today-alert");
+        const btnIn = document.getElementById("btn-submit-punch-in");
+        const btnOut = document.getElementById("btn-submit-punch-out");
+        if (!alertBox) return;
+
+        if (this.todayPunchObj) {
+            const hasIn = this.todayPunchObj.PunchIn && this.todayPunchObj.PunchIn.toString().trim() !== "";
+            const hasOut = this.todayPunchObj.PunchOut && this.todayPunchObj.PunchOut.toString().trim() !== "";
+
+            if (hasIn && !hasOut) {
+                alertBox.style.display = "block";
+                alertBox.innerHTML = `
+                    <div class="alert alert-warning py-2 mb-2 text-center fw-bold small">
+                        <i class="fa-solid fa-clock"></i> Already clocked IN today at ${this.todayPunchObj.PunchIn}.<br>Please click <strong>Punch OUT</strong> when your shift ends.
+                    </div>
+                `;
+                if (btnIn) {
+                    btnIn.classList.add("disabled");
+                    btnIn.style.opacity = "0.4";
+                }
+                if (btnOut) {
+                    btnOut.classList.remove("disabled");
+                    btnOut.style.opacity = "1";
+                }
+            } else if (hasIn && hasOut) {
+                alertBox.style.display = "block";
+                alertBox.innerHTML = `
+                    <div class="alert alert-success py-2 mb-2 text-center fw-bold small">
+                        <i class="fa-solid fa-circle-check"></i> Shift Completed Today (In: ${this.todayPunchObj.PunchIn} | Out: ${this.todayPunchObj.PunchOut}).
+                    </div>
+                `;
+                if (btnIn) {
+                    btnIn.classList.add("disabled");
+                    btnIn.style.opacity = "0.4";
+                }
+                if (btnOut) {
+                    btnOut.classList.add("disabled");
+                    btnOut.style.opacity = "0.4";
+                }
+            }
+        } else {
+            alertBox.style.display = "block";
+            alertBox.innerHTML = `
+                <div class="alert alert-info py-2 mb-2 text-center fw-bold small">
+                    <i class="fa-solid fa-fingerprint"></i> Ready for Clock In. Snap front selfie and click Punch IN.
+                </div>
+            `;
+            if (btnIn) {
+                btnIn.classList.remove("disabled");
+                btnIn.style.opacity = "1";
+            }
+            if (btnOut) {
+                btnOut.classList.add("disabled");
+                btnOut.style.opacity = "0.4";
+            }
+        }
+    },
+
     // Start WebRTC Camera stream & GPS location monitoring
     async startCameraAndGPS() {
         this.capturedImage = null;
@@ -273,6 +456,7 @@ const EmployeeApp = {
         document.getElementById("camera-stream").style.display = "block";
         document.getElementById("btn-retake-selfie").style.display = "none";
         document.getElementById("btn-capture-selfie").style.display = "block";
+        this.updatePunchScreenState();
         
         // Start Camera stream
         try {
@@ -497,6 +681,37 @@ const EmployeeApp = {
             return;
         }
 
+        // Client-side duplicate & prerequisite verification with immediate alert
+        if (punchType === "In" && this.todayPunchObj && this.todayPunchObj.PunchIn) {
+            Swal.fire({
+                icon: "warning",
+                title: "Already Clocked In",
+                text: `Duplicate transaction skipped: already clocked In today at ${this.todayPunchObj.PunchIn}.`,
+                confirmButtonColor: "#E4002B"
+            });
+            return;
+        }
+
+        if (punchType === "Out" && (!this.todayPunchObj || !this.todayPunchObj.PunchIn)) {
+            Swal.fire({
+                icon: "warning",
+                title: "Clock In Required",
+                text: "Cannot Clock Out without clocking In first.",
+                confirmButtonColor: "#E4002B"
+            });
+            return;
+        }
+
+        if (punchType === "Out" && this.todayPunchObj && this.todayPunchObj.PunchOut) {
+            Swal.fire({
+                icon: "warning",
+                title: "Already Clocked Out",
+                text: `Duplicate transaction skipped: already clocked Out today at ${this.todayPunchObj.PunchOut}.`,
+                confirmButtonColor: "#E4002B"
+            });
+            return;
+        }
+
         try {
             const exitedCount = localStorage.getItem("EAMS_geofence_exited_count") || "0";
             let activeTimeStr = "";
@@ -663,6 +878,13 @@ const EmployeeApp = {
                     document.getElementById("punch-remarks").value = "";
                     this.switchView("dashboard");
                     this.loadDashboardData();
+                });
+            } else {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Transaction Alert",
+                    text: res.message || "Attendance transaction could not be processed.",
+                    confirmButtonColor: "#E4002B"
                 });
             }
         } catch (err) {
@@ -1028,15 +1250,18 @@ const EmployeeApp = {
 
     // Load Leave Application history
     async loadLeaveView(force = false) {
-        if (!force && this.personalLeaves && this.personalLeaves.length > 0) {
+        // Instant memory-first rendering for zero lag
+        if (this.personalLeaves && this.personalLeaves.length > 0) {
             this.renderLeaveHistoryCache();
-            return;
+            if (!force) return;
         }
         
         const container = document.getElementById("leave-history-list");
         if (!container) return;
 
-        container.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-danger"></div></div>`;
+        if (!this.personalLeaves || this.personalLeaves.length === 0) {
+            container.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-danger"></div></div>`;
+        }
 
         try {
             const res = await API.call({
@@ -1047,45 +1272,50 @@ const EmployeeApp = {
             if (res.status === "Success" && res.data) {
                 // Save leaves to local state for validator checks
                 this.personalLeaves = res.data;
-
-                // Update WO balance indicator
-                const woBalEl = document.getElementById("leave-balance-wo");
-                if (woBalEl) {
-                    woBalEl.innerText = res.balances.weeklyOff || 0;
-                }
-
-                if (res.data.length === 0) {
-                    container.innerHTML = `<div class="text-center text-muted py-3">No applications lodged.</div>`;
-                    return;
-                }
-
-                container.innerHTML = res.data.map(l => {
-                    let statusBadge = `<span class="badge bg-warning text-dark">Pending</span>`;
-                    if (l.Status === "Approved") statusBadge = `<span class="badge bg-success">Approved</span>`;
-                    else if (l.Status === "Rejected") statusBadge = `<span class="badge bg-danger">Rejected</span>`;
-
-                    return `
-                        <div class="card p-3 mb-2 themed-badge-box border-0 rounded">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="fw-bold text-brand">${l.Type}</span>
-                                ${statusBadge}
-                            </div>
-                            <div class="small text-muted">
-                                <div>Duration: <strong>${this.cleanDateFormat(l.StartDate)}</strong> to <strong>${this.cleanDateFormat(l.EndDate)}</strong> (${l.Duration} days)</div>
-                                <div>Reason: ${l.Reason}</div>
-                                ${l.Attachment ? `<div class="mt-1"><a href="${l.Attachment}" target="_blank" class="btn btn-sm btn-outline-secondary py-0"><i class="fa-solid fa-paperclip"></i> View Proof Document</a></div>` : ""}
-                                ${l.Comments ? `<div class="mt-1 opacity-75"><em>Remarks: ${l.Comments}</em></div>` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                this.personalLeaveBalances = res.balances;
+                this.renderLeaveHistoryCache();
             }
         } catch (err) {
-            container.innerHTML = `<div class="text-center text-danger">Failed to stream leaves logs.</div>`;
+            console.error("Failed to load leaves logs", err);
+            if (!this.personalLeaves || this.personalLeaves.length === 0) {
+                container.innerHTML = `<div class="text-center text-danger">Failed to stream leaves logs.</div>`;
+            }
         }
     },
 
     renderLeaveHistoryCache() {
+        // Update WO balance indicator safely
+        const woBalEl = document.getElementById("leave-balance-wo");
+        if (woBalEl) {
+            let woVal = 0;
+            if (this.personalLeaveBalances && this.personalLeaveBalances.weeklyOff !== undefined) {
+                woVal = this.personalLeaveBalances.weeklyOff;
+            } else if (Array.isArray(this.personalLeaves)) {
+                const today = new Date();
+                const curMonth = today.getMonth();
+                const curYear = today.getFullYear();
+                const uniqueWODates = {};
+                this.personalLeaves.forEach(l => {
+                    if (l.Status === "Approved" && (l.Type === "Weekly Off" || l.Type === "WO")) {
+                        let cur = new Date(l.StartDate);
+                        const end = new Date(l.EndDate);
+                        if (!isNaN(cur.getTime()) && !isNaN(end.getTime())) {
+                            cur.setHours(0, 0, 0, 0);
+                            end.setHours(0, 0, 0, 0);
+                            while (cur <= end) {
+                                if (cur.getMonth() === curMonth && cur.getFullYear() === curYear) {
+                                    uniqueWODates[`${cur.getFullYear()}-${cur.getMonth() + 1}-${cur.getDate()}`] = true;
+                                }
+                                cur.setDate(cur.getDate() + 1);
+                            }
+                        }
+                    }
+                });
+                woVal = Object.keys(uniqueWODates).length;
+            }
+            woBalEl.innerText = woVal;
+        }
+
         const container = document.getElementById("leave-history-list");
         if (!container) return;
         if (!this.personalLeaves || this.personalLeaves.length === 0) {
@@ -1415,7 +1645,7 @@ const EmployeeApp = {
                             submitBtn.disabled = false;
                             submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> File Application`;
                         }
-                        self.loadLeaveView();
+                        self.loadLeaveView(true);
                     });
                 } else {
                     Swal.fire("Submission Failed", res.message, "error");
