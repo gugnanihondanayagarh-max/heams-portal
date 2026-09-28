@@ -159,6 +159,44 @@ const API = {
         return Math.round(R * c);
     },
 
+    // Helper: Apply Active Branch Relaxation Overrides
+    async applyBranchRelaxation(branch, targetDate = new Date()) {
+        if (!branch || !branch.BranchName) return branch;
+        try {
+            const rels = await this.rest(`relaxations?Status=ilike.Active&BranchName=ilike.${encodeURIComponent(branch.BranchName.trim())}&select=*`);
+            if (!rels || rels.length === 0) return branch;
+
+            const d = new Date(targetDate);
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const dateStr = `${d.getDate().toString().padStart(2, '0')}-${months[d.getMonth()]}-${d.getFullYear()}`;
+            const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const dayOfWeek = dayNames[d.getDay()];
+
+            for (const r of rels) {
+                let matches = false;
+                const rVal = (r.RuleValue || "").toString().trim();
+                if (r.RuleType === "DayOfWeek" && rVal.toLowerCase() === dayOfWeek.toLowerCase()) {
+                    matches = true;
+                } else if (r.RuleType === "SpecificDate" && rVal.toLowerCase() === dateStr.toLowerCase()) {
+                    matches = true;
+                }
+
+                if (matches && r.NewOfficeEnd) {
+                    return {
+                        ...branch,
+                        OfficeEnd: r.NewOfficeEnd.toString().trim(),
+                        isRelaxed: true,
+                        relaxationRuleId: r.RuleID,
+                        relaxationReason: r.Reason || ""
+                    };
+                }
+            }
+        } catch (e) {
+            console.warn("Could not check branch relaxation:", e);
+        }
+        return branch;
+    },
+
     // UNIFIED CALL DISPATCHER
     async call(payload, showLoader = true) {
         if (showLoader && typeof Swal !== 'undefined') {
@@ -296,6 +334,9 @@ const API = {
             if (!branchDetails && branches && branches.length > 0) {
                 branchDetails = branches[0];
             }
+            if (branchDetails) {
+                branchDetails = await this.applyBranchRelaxation(branchDetails, new Date());
+            }
 
             const todayPunch = (todayPunches && todayPunches.length > 0) ? todayPunches[0] : null;
 
@@ -365,6 +406,7 @@ const API = {
                 const fallbackBranches = await this.rest(`branches?select=*&limit=1`);
                 branch = (fallbackBranches && fallbackBranches.length > 0) ? fallbackBranches[0] : { Latitude: clientLat, Longitude: clientLng, Radius: 100, OfficeStart: "09:30:00", OfficeEnd: "19:30:00", GraceTime: 30 };
             }
+            branch = await this.applyBranchRelaxation(branch, new Date());
 
             // Distance calculation
             const dist = this.calculateDistance(clientLat, clientLng, branch.Latitude, branch.Longitude);
@@ -868,12 +910,30 @@ const API = {
         }
 
         if (action === "saveRelaxation") {
+            const relData = { ...(payload.data || {}) };
+            if (!relData.RuleID) {
+                relData.RuleID = 'RLX' + Math.floor(1000 + Math.random() * 9000);
+            }
+            if (!relData.Status) {
+                relData.Status = 'Active';
+            }
+            if (!relData.RequestedBy) {
+                relData.RequestedBy = 'Admin';
+            }
             await this.rest(`relaxations`, {
                 method: "POST",
                 headers: { "Prefer": "resolution=merge-duplicates" },
-                body: payload.data
+                body: relData
             });
-            return { status: "Success", message: "Relaxation rule applied." };
+            return { status: "Success", message: "Relaxation rule applied.", ruleId: relData.RuleID };
+        }
+
+        if (action === "updateRelaxation") {
+            await this.rest(`relaxations?RuleID=eq.${encodeURIComponent(payload.ruleId)}`, {
+                method: "PATCH",
+                body: { Status: payload.status }
+            });
+            return { status: "Success", message: `Relaxation marked as ${payload.status}.` };
         }
 
         if (action === "deleteRelaxation") {

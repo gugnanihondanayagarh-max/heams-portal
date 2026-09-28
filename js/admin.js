@@ -2848,13 +2848,17 @@ const AdminApp = {
         }
 
         try {
+            const ruleId = 'RLX' + Math.floor(1000 + Math.random() * 9000);
             const res = await API.call({
                 action: 'saveRelaxation',
                 data: {
+                    RuleID: ruleId,
                     BranchName: branchName,
                     RuleType: ruleType,
                     RuleValue: ruleValue,
-                    NewOfficeEnd: newOfficeEnd
+                    NewOfficeEnd: newOfficeEnd,
+                    Status: 'Active',
+                    RequestedBy: 'Admin'
                 }
             });
 

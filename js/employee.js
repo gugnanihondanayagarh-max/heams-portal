@@ -225,7 +225,14 @@ const EmployeeApp = {
                 // Render Branch info cards
                 if (this.assignedBranch) {
                     document.getElementById("dash-branch-name").innerText = this.assignedBranch.BranchName || "--";
-                    document.getElementById("dash-office-timing").innerText = `${this.assignedBranch.OfficeStart || "09:30"} - ${this.assignedBranch.OfficeEnd || "19:30"}`;
+                    const timingEl = document.getElementById("dash-office-timing");
+                    if (timingEl) {
+                        if (this.assignedBranch.isRelaxed) {
+                            timingEl.innerHTML = `<span class="badge bg-warning text-dark me-1"><i class="fa-solid fa-umbrella-beach"></i> Relaxed</span> ${this.assignedBranch.OfficeStart || "09:30"} - ${this.assignedBranch.OfficeEnd || "19:30"}`;
+                        } else {
+                            timingEl.innerText = `${this.assignedBranch.OfficeStart || "09:30"} - ${this.assignedBranch.OfficeEnd || "19:30"}`;
+                        }
+                    }
                 }
 
                 // Render Punch Status
@@ -249,6 +256,18 @@ const EmployeeApp = {
                 
                 // Keep punch state banner updated
                 this.updatePunchScreenState();
+
+                // Pre-warm Google Location / GPS in background for instant punch response
+                if (navigator.geolocation && !this.cachedPosition) {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            this.cachedPosition = pos;
+                            this.cachedPositionTime = Date.now();
+                        },
+                        () => {},
+                        { enableHighAccuracy: false, timeout: 5000, maximumAge: 120000 }
+                    );
+                }
 
                 // Start background foreground alarm tracker
                 this.startOverdueAlarmTracker();
@@ -477,51 +496,46 @@ const EmployeeApp = {
 
         // Start GPS tracking
         this.gpsLocked = false;
-        document.getElementById("gps-status-badge").className = "geo-status-indicator pending";
-        document.getElementById("gps-status-badge").innerText = "Acquiring Coordinates...";
-        document.getElementById("gps-latitude").innerText = "--";
-        document.getElementById("gps-longitude").innerText = "--";
-        document.getElementById("gps-distance").innerText = "--";
+        
+        // 1. Instant Cache Lock: Use fresh cached position if available (< 90 seconds)
+        if (this.cachedPosition && (Date.now() - (this.cachedPositionTime || 0) < 90000)) {
+            this.handleGPSLock(this.cachedPosition);
+        } else {
+            document.getElementById("gps-status-badge").className = "geo-status-indicator pending";
+            document.getElementById("gps-status-badge").innerText = "Acquiring Coordinates...";
+            document.getElementById("gps-latitude").innerText = "--";
+            document.getElementById("gps-longitude").innerText = "--";
+            document.getElementById("gps-distance").innerText = "--";
+        }
         
         if (navigator.geolocation) {
-            // First attempt: High Accuracy
+            // Fast attempt: High Accuracy with quick 5s timeout & 45s cache
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    // Check if accuracy is terrible (cell tower fallback)
-                    if (pos.coords.accuracy > 1500) {
-                        Swal.fire({
-                            title: 'Weak GPS Signal',
-                            text: `Accuracy is low (${Math.round(pos.coords.accuracy)}m). We are using cell-tower fallback. Please step outside for a clear sky view.`,
-                            icon: 'warning', toast: true, position: 'top-end', timer: 4000, showConfirmButton: false
-                        });
-                    }
                     this.handleGPSLock(pos);
                 },
                 (err) => {
-                    console.warn("High-accuracy GPS failed, falling back to standard...", err);
                     if (err.code === 1) {
                         Swal.fire("Permission Denied", "Please allow location access to punch attendance.", "error");
                         return;
                     }
-                    // Second attempt: Standard Accuracy Fallback
+                    console.warn("High-accuracy GPS delayed, falling back immediately to network/fused location...", err);
+                    // Fast fallback: Standard Fused/Network Accuracy (Immediate response indoors)
                     navigator.geolocation.getCurrentPosition(
                         (fallbackPos) => {
-                            Swal.fire({
-                                title: 'Weak GPS Signal',
-                                text: 'High-accuracy GPS failed. Using mobile network triangulation. Please step near a window.',
-                                icon: 'warning', toast: true, position: 'top-end', timer: 4000, showConfirmButton: false
-                            });
                             this.handleGPSLock(fallbackPos);
                         },
                         (fallbackErr) => {
-                            document.getElementById("gps-status-badge").className = "geo-status-indicator outside";
-                            document.getElementById("gps-status-badge").innerText = "GPS Error";
-                            Swal.fire("GPS Error", "Failed to retrieve location completely. Step outside and try again.", "error");
+                            if (!this.gpsLocked) {
+                                document.getElementById("gps-status-badge").className = "geo-status-indicator outside";
+                                document.getElementById("gps-status-badge").innerText = "GPS Error";
+                                Swal.fire("GPS Error", "Failed to retrieve location. Please check location permissions and ensure GPS is turned on.", "error");
+                            }
                         },
-                        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+                        { enableHighAccuracy: false, timeout: 5000, maximumAge: 120000 }
                     );
                 },
-                { enableHighAccuracy: true, timeout: 25000, maximumAge: 15000 }
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 45000 }
             );
         } else {
             Swal.fire("GPS Unsupported", "Your browser does not support location services.", "error");
@@ -539,6 +553,8 @@ const EmployeeApp = {
     // GPS location handler
     handleGPSLock(position) {
         this.gpsLocked = true;
+        this.cachedPosition = position;
+        this.cachedPositionTime = Date.now();
         this.currentCoords = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
@@ -2759,9 +2775,11 @@ const EmployeeApp = {
             try {
                 Swal.fire({ title: 'Submitting...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
                 
+                const ruleId = 'RLX' + Math.floor(1000 + Math.random() * 9000);
                 const res = await API.call({
                     action: 'saveRelaxation',
                     data: {
+                        RuleID: ruleId,
                         BranchName: managerBranch,
                         RuleType: 'SpecificDate',
                         RuleValue: formattedDate,
