@@ -966,6 +966,12 @@ const API = {
             const targetDateStr = this.formatDateStr(targetDate);
             const includeInactive = payload.includeInactive || false;
 
+            // Fetch employees and construct empMap & empList for all report types
+            const emps = await this.rest(`employees?select=*&order=EmployeeID.asc`);
+            const empList = (emps || []).filter(e => e.Status === "Active" || includeInactive);
+            const empMap = {};
+            (emps || []).forEach(e => { if (e && e.EmployeeID) empMap[e.EmployeeID] = e; });
+
             if (reportType === "Matrix") {
                 const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
                 const headers = ["EmployeeID", "Name", "Branch"];
@@ -977,14 +983,12 @@ const API = {
                 const monthSuffix = `-${months[targetMonth]}-${targetYear}`;
                 
                 // Fetch matrix prerequisites in parallel
-                const [emps, punches, holList, leaveList] = await Promise.all([
-                    this.rest(`employees?select=*&order=EmployeeID.asc`),
+                const [punches, holList, leaveList] = await Promise.all([
                     this.rest(`attendance?Date=like.*${encodeURIComponent(monthSuffix)}&select=AttendanceID,EmployeeID,Date,PunchIn,PunchOut,Status,Remarks`),
                     this.rest(`holidays?select=Date`),
                     this.rest(`leaves?Status=eq.Approved&select=EmployeeID,StartDate,EndDate,Type`)
                 ]);
 
-                const empList = (emps || []).filter(e => e.Status === "Active" || includeInactive);
                 const holidayDates = (holList || []).map(h => h.Date);
 
                 const today = new Date();
@@ -1137,12 +1141,7 @@ const API = {
             }
 
             if (reportType === "Daily") {
-                const [emps, punches] = await Promise.all([
-                    this.rest(`employees?select=*&order=EmployeeID.asc`),
-                    this.rest(`attendance?Date=eq.${encodeURIComponent(targetDateStr)}&select=*`)
-                ]);
-                const empMap = {};
-                (emps || []).forEach(e => { empMap[e.EmployeeID] = e; });
+                const punches = await this.rest(`attendance?Date=eq.${encodeURIComponent(targetDateStr)}&select=*`);
 
                 const headers = ["EmployeeID", "Name", "Branch", "PunchIn", "PunchOut", "WorkingHours", "Status", "Remarks"];
                 const data = (punches || []).map(p => {
@@ -1166,13 +1165,11 @@ const API = {
                 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                 const monthSuffix = `-${months[targetMonth]}-${targetYear}`;
                 
-                const [emps, punches, leaves] = await Promise.all([
-                    this.rest(`employees?select=*&order=EmployeeID.asc`),
+                const [punches, leaves] = await Promise.all([
                     this.rest(`attendance?Date=like.*${encodeURIComponent(monthSuffix)}&select=EmployeeID,Status`),
                     this.rest(`leaves?Status=eq.Approved&select=EmployeeID`)
                 ]);
 
-                const empList = (emps || []).filter(e => e.Status === "Active" || includeInactive);
                 const today = new Date();
                 const currentDay = (targetMonth === today.getMonth() && targetYear === today.getFullYear()) ? today.getDate() : new Date(targetYear, targetMonth + 1, 0).getDate();
 

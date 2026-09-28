@@ -480,7 +480,7 @@ const EmployeeApp = {
         document.getElementById("btn-retake-selfie").style.display = "none";
         document.getElementById("btn-capture-selfie").style.display = "block";
         this.updatePunchScreenState();
-        this.setupSelfiePoseForVisit();
+        this.applySelfiePose('makeup');
         
         // Start Camera stream
         try {
@@ -672,7 +672,9 @@ const EmployeeApp = {
                 setTimeout(() => flash.classList.remove("flashing"), 80);
             }
 
-            // Angela Standing in Corner Celebrates Snap!
+            // Angela switches video to standing pose on capture!
+            this.applySelfiePose('standing');
+
             const mascotAngela = document.getElementById("camera-side-angela");
             const speechAngela = document.getElementById("camera-angela-speech");
 
@@ -682,7 +684,7 @@ const EmployeeApp = {
                 mascotAngela.classList.add("snap-celebrate");
                 this.spawnReactionParticle(mascotAngela, '💖');
             }
-            if (speechAngela) speechAngela.innerHTML = "Awesome pose! 🎀📸 Gorgeous!";
+            if (speechAngela) speechAngela.innerHTML = "Awesome pose! 📸✨ Gorgeous!";
         }).catch(err => {
             console.error("Selfie compression failed:", err);
             Swal.fire("Compression Error", "Failed to process photo preview.", "error");
@@ -697,22 +699,8 @@ const EmployeeApp = {
         document.getElementById("btn-retake-selfie").style.display = "none";
         document.getElementById("btn-capture-selfie").style.display = "block";
 
-        const speechAngela = document.getElementById("camera-angela-speech");
-        if (speechAngela) {
-            speechAngela.innerHTML = (this.currentSelfiePose === 'makeup')
-                ? "Touching up my makeup! 💄✨"
-                : "Strike a pose with me! 🎀✌️";
-        }
-    },
-
-    // Setup Angela's pose for this visit: Alternates cleanly between Makeup & Standing Pose
-    // Visit 1: Makeup (default first!) -> Visit 2: Standing -> Visit 3: Makeup -> ...
-    setupSelfiePoseForVisit() {
-        const lastPose = localStorage.getItem('EAMS_last_selfie_pose') || 'standing';
-        // Alternates to the other pose for the new visit (defaults to makeup first!)
-        const currentPose = (lastPose === 'makeup') ? 'standing' : 'makeup';
-        localStorage.setItem('EAMS_last_selfie_pose', currentPose);
-        this.applySelfiePose(currentPose);
+        // Switch video back to makeup pose on retake!
+        this.applySelfiePose('makeup');
     },
 
     // Apply the active pose: toggles visibility between preloaded makeup and standing images
@@ -721,25 +709,21 @@ const EmployeeApp = {
         const imgMakeup = document.getElementById("camera-angela-makeup");
         const imgStanding = document.getElementById("camera-angela-standing");
         const speech = document.getElementById("camera-angela-speech");
-        const indicator = document.getElementById("camera-pose-indicator");
 
         if (pose === 'makeup') {
             if (imgMakeup) imgMakeup.style.display = 'block';
             if (imgStanding) imgStanding.style.display = 'none';
             if (speech) speech.innerHTML = 'Touching up my makeup! 💄✨';
-            if (indicator) indicator.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Makeup Pose (Tap)';
         } else {
             if (imgMakeup) imgMakeup.style.display = 'none';
             if (imgStanding) imgStanding.style.display = 'block';
-            if (speech) speech.innerHTML = 'Strike a pose with me! 🎀✌️';
-            if (indicator) indicator.innerHTML = '<i class="fa-solid fa-camera"></i> Standing Pose (Tap)';
+            if (speech) speech.innerHTML = 'Strike a pose with me! 📸✨';
         }
     },
 
-    // User taps Angela or badge to switch pose anytime!
+    // User taps Angela to switch pose anytime!
     toggleSelfieMascotPose() {
         const nextPose = (this.currentSelfiePose === 'makeup') ? 'standing' : 'makeup';
-        localStorage.setItem('EAMS_last_selfie_pose', nextPose);
         this.applySelfiePose(nextPose);
 
         const el = document.getElementById("camera-side-angela");
@@ -2912,31 +2896,14 @@ const EmployeeApp = {
     interactWithMascot(char) {
         if (char === 'angela') {
             const wrap = document.getElementById('alive-angela-wrap');
-            const badge = document.getElementById('angela-alive-badge');
-            const speech = document.getElementById('mascot-speech-text');
-
             if (wrap) {
                 wrap.classList.remove('react-jump');
                 void wrap.offsetWidth; // Reflow
                 wrap.classList.add('react-jump');
-
-                // Spawn floating love heart particle
                 this.spawnReactionParticle(wrap, '💖');
             }
-
-            const quotes = [
-                'Hi! Let\'s do great today! 🎀',
-                'You\'ve got this! ✨',
-                'Smile! You\'re amazing! 💖',
-                'Ready to punch in? 👇'
-            ];
-            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-            if (badge) badge.innerText = 'Giggle! 🎀💖';
-            if (speech) speech.innerHTML = `<strong>Angela:</strong> "${randomQuote}"`;
-
-            setTimeout(() => {
-                if (badge) badge.innerText = 'Hi there! 🎀';
-            }, 2500);
+            // Touching Angela automatically starts playing & chasing!
+            this.playMascotChase();
         } else {
             const wrap = document.getElementById('alive-tom-wrap');
             const badge = document.getElementById('tom-alive-badge');
