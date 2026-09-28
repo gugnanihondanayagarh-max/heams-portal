@@ -251,6 +251,9 @@ const EmployeeApp = {
                     this.stopGeofenceTracking();
                 }
 
+                // Update Talking Angela / Tom Mascot Greeting and Action CTA
+                this.updateMascotGreeting(officialName, res.todayPunch);
+
                 // Render Recent activities
                 this.renderRecentActivities(res.recentPunches || []);
                 
@@ -477,6 +480,7 @@ const EmployeeApp = {
         document.getElementById("btn-retake-selfie").style.display = "none";
         document.getElementById("btn-capture-selfie").style.display = "block";
         this.updatePunchScreenState();
+        this.setupSelfiePoseForVisit();
         
         // Start Camera stream
         try {
@@ -660,6 +664,25 @@ const EmployeeApp = {
             video.style.display = "none";
             document.getElementById("btn-capture-selfie").style.display = "none";
             document.getElementById("btn-retake-selfie").style.display = "block";
+
+            // Camera Shutter Flash Effect
+            const flash = document.getElementById("camera-flash-overlay");
+            if (flash) {
+                flash.classList.add("flashing");
+                setTimeout(() => flash.classList.remove("flashing"), 80);
+            }
+
+            // Angela Standing in Corner Celebrates Snap!
+            const mascotAngela = document.getElementById("camera-side-angela");
+            const speechAngela = document.getElementById("camera-angela-speech");
+
+            if (mascotAngela) {
+                mascotAngela.classList.remove("snap-celebrate");
+                void mascotAngela.offsetWidth; // Reflow
+                mascotAngela.classList.add("snap-celebrate");
+                this.spawnReactionParticle(mascotAngela, '💖');
+            }
+            if (speechAngela) speechAngela.innerHTML = "Awesome pose! 🎀📸 Gorgeous!";
         }).catch(err => {
             console.error("Selfie compression failed:", err);
             Swal.fire("Compression Error", "Failed to process photo preview.", "error");
@@ -673,6 +696,63 @@ const EmployeeApp = {
         document.getElementById("camera-stream").style.display = "block";
         document.getElementById("btn-retake-selfie").style.display = "none";
         document.getElementById("btn-capture-selfie").style.display = "block";
+
+        const speechAngela = document.getElementById("camera-angela-speech");
+        if (speechAngela) {
+            speechAngela.innerHTML = (this.currentSelfiePose === 'makeup')
+                ? "Touching up my makeup! 💄✨"
+                : "Strike a pose with me! 🎀✌️";
+        }
+    },
+
+    // Setup Angela's pose for this visit: Alternates cleanly between Makeup & Standing Pose
+    // Visit 1: Makeup (default first!) -> Visit 2: Standing -> Visit 3: Makeup -> ...
+    setupSelfiePoseForVisit() {
+        const lastPose = localStorage.getItem('EAMS_last_selfie_pose') || 'standing';
+        // Alternates to the other pose for the new visit (defaults to makeup first!)
+        const currentPose = (lastPose === 'makeup') ? 'standing' : 'makeup';
+        localStorage.setItem('EAMS_last_selfie_pose', currentPose);
+        this.applySelfiePose(currentPose);
+    },
+
+    // Apply the active pose: toggles visibility between preloaded makeup and standing images
+    applySelfiePose(pose) {
+        this.currentSelfiePose = pose;
+        const imgMakeup = document.getElementById("camera-angela-makeup");
+        const imgStanding = document.getElementById("camera-angela-standing");
+        const speech = document.getElementById("camera-angela-speech");
+        const indicator = document.getElementById("camera-pose-indicator");
+
+        if (pose === 'makeup') {
+            if (imgMakeup) imgMakeup.style.display = 'block';
+            if (imgStanding) imgStanding.style.display = 'none';
+            if (speech) speech.innerHTML = 'Touching up my makeup! 💄✨';
+            if (indicator) indicator.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Makeup Pose (Tap)';
+        } else {
+            if (imgMakeup) imgMakeup.style.display = 'none';
+            if (imgStanding) imgStanding.style.display = 'block';
+            if (speech) speech.innerHTML = 'Strike a pose with me! 🎀✌️';
+            if (indicator) indicator.innerHTML = '<i class="fa-solid fa-camera"></i> Standing Pose (Tap)';
+        }
+    },
+
+    // User taps Angela or badge to switch pose anytime!
+    toggleSelfieMascotPose() {
+        const nextPose = (this.currentSelfiePose === 'makeup') ? 'standing' : 'makeup';
+        localStorage.setItem('EAMS_last_selfie_pose', nextPose);
+        this.applySelfiePose(nextPose);
+
+        const el = document.getElementById("camera-side-angela");
+        if (el) {
+            el.classList.remove("snap-celebrate");
+            void el.offsetWidth;
+            el.classList.add("snap-celebrate");
+            this.spawnReactionParticle(el, '💖');
+        }
+    },
+
+    interactWithCameraMascot(char) {
+        this.toggleSelfieMascotPose();
     },
 
     // Punch IN / OUT Submission handler
@@ -2801,6 +2881,263 @@ const EmployeeApp = {
                 Swal.fire('Error', 'Server communication failed.', 'error');
             }
         }
+    },
+
+    // --- TALKING ANGELA & TOM "ACT LIKE REAL" INTERACTIVE ENGINE ---
+    setCompanionView(mode) {
+        const angelaWrap = document.getElementById('alive-angela-wrap');
+        const tomWrap = document.getElementById('alive-tom-wrap');
+        const btnBoth = document.getElementById('btn-mode-both');
+        const btnAngela = document.getElementById('btn-mode-angela');
+        const btnTom = document.getElementById('btn-mode-tom');
+
+        if (btnBoth) btnBoth.classList.toggle('active', mode === 'both');
+        if (btnAngela) btnAngela.classList.toggle('active', mode === 'angela');
+        if (btnTom) btnTom.classList.toggle('active', mode === 'tom');
+
+        if (angelaWrap) {
+            angelaWrap.style.display = (mode === 'both' || mode === 'angela') ? 'flex' : 'none';
+        }
+        if (tomWrap) {
+            tomWrap.style.display = (mode === 'both' || mode === 'tom') ? 'flex' : 'none';
+        }
+
+        localStorage.setItem('EAMS_mascot_companion', mode);
+
+        // Play mini cheerful reaction
+        if (mode === 'angela') this.interactWithMascot('angela');
+        else if (mode === 'tom') this.interactWithMascot('tom');
+    },
+
+    interactWithMascot(char) {
+        if (char === 'angela') {
+            const wrap = document.getElementById('alive-angela-wrap');
+            const badge = document.getElementById('angela-alive-badge');
+            const speech = document.getElementById('mascot-speech-text');
+
+            if (wrap) {
+                wrap.classList.remove('react-jump');
+                void wrap.offsetWidth; // Reflow
+                wrap.classList.add('react-jump');
+
+                // Spawn floating love heart particle
+                this.spawnReactionParticle(wrap, '💖');
+            }
+
+            const quotes = [
+                'Hi! Let\'s do great today! 🎀',
+                'You\'ve got this! ✨',
+                'Smile! You\'re amazing! 💖',
+                'Ready to punch in? 👇'
+            ];
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            if (badge) badge.innerText = 'Giggle! 🎀💖';
+            if (speech) speech.innerHTML = `<strong>Angela:</strong> "${randomQuote}"`;
+
+            setTimeout(() => {
+                if (badge) badge.innerText = 'Hi there! 🎀';
+            }, 2500);
+        } else {
+            const wrap = document.getElementById('alive-tom-wrap');
+            const badge = document.getElementById('tom-alive-badge');
+            const speech = document.getElementById('mascot-speech-text');
+
+            if (wrap) {
+                wrap.classList.remove('react-jump');
+                void wrap.offsetWidth; // Reflow
+                wrap.classList.add('react-jump');
+
+                // Spawn action star particle
+                this.spawnReactionParticle(wrap, '⭐');
+            }
+
+            const quotes = [
+                'Yeah! Ready to rock today! 👊',
+                'Let\'s get this shift started! 😼',
+                'Punch button is right down here! 👇',
+                'High five! 🐾⭐'
+            ];
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            if (badge) badge.innerText = 'Yeah! 😼⭐';
+            if (speech) speech.innerHTML = `<strong>Tom:</strong> "${randomQuote}"`;
+
+            setTimeout(() => {
+                if (badge) badge.innerText = 'Hey! 😼';
+            }, 2500);
+        }
+    },
+
+    playMascotChase() {
+        const podium = document.getElementById('mascot-characters-podium');
+        const angelaImg = document.getElementById('angela-alive-img');
+        const angelaBadge = document.getElementById('angela-alive-badge');
+        const tomBadge = document.getElementById('tom-alive-badge');
+        const speech = document.getElementById('mascot-speech-text');
+        const btnChase = document.getElementById('btn-mascot-chase');
+        if (!podium) return;
+
+        // Ensure both companions are shown
+        this.setCompanionView('both');
+
+        // Toggle off if already running
+        if (podium.classList.contains('is-chasing')) {
+            podium.classList.remove('is-chasing');
+            if (angelaImg) angelaImg.src = 'img/angela_animated.webp';
+            if (angelaBadge) angelaBadge.innerText = 'Hi there! 🎀';
+            if (tomBadge) tomBadge.innerText = 'Hey! 😼';
+            if (btnChase) btnChase.innerHTML = '<i class="fa-solid fa-person-running text-warning me-1"></i> Chase & Play 🏃🐾';
+            return;
+        }
+
+        // Start running chase!
+        podium.classList.add('is-chasing');
+        if (angelaImg) angelaImg.src = 'img/angela_run.webp';
+        if (angelaBadge) angelaBadge.innerText = 'Catch me! 🎀🏃';
+        if (tomBadge) tomBadge.innerText = 'Wait for me! 😼💨';
+        if (speech) speech.innerHTML = `<strong>Angela & Tom:</strong> "Wheeee! Running around the office! 🏃🐾 Tap Punch 👇 when ready to clock in!"`;
+        if (btnChase) btnChase.innerHTML = '<i class="fa-solid fa-pause text-danger me-1"></i> Stop Chase ⏸️';
+
+        const angelaWrap = document.getElementById('alive-angela-wrap');
+        const tomWrap = document.getElementById('alive-tom-wrap');
+        this.spawnReactionParticle(angelaWrap, '💖');
+        this.spawnReactionParticle(tomWrap, '💨');
+
+        const chaseInterval = setInterval(() => {
+            if (!podium.classList.contains('is-chasing')) {
+                clearInterval(chaseInterval);
+                return;
+            }
+            this.spawnReactionParticle(angelaWrap, '✨');
+            this.spawnReactionParticle(tomWrap, '💨');
+        }, 1200);
+
+        // Auto-revert after 7.6 seconds (2 sprint loops)
+        setTimeout(() => {
+            clearInterval(chaseInterval);
+            if (podium.classList.contains('is-chasing')) {
+                podium.classList.remove('is-chasing');
+                if (angelaImg) angelaImg.src = 'img/angela_animated.webp';
+                if (angelaBadge) angelaBadge.innerText = 'Hehe, so fun! 🎀';
+                if (tomBadge) tomBadge.innerText = 'Phew, fast! 😼🐾';
+                if (btnChase) btnChase.innerHTML = '<i class="fa-solid fa-person-running text-warning me-1"></i> Chase & Play 🏃🐾';
+                if (speech) speech.innerHTML = `Angela & Tom are ready! Tap Punch at the bottom 👇 to record attendance.`;
+                setTimeout(() => {
+                    if (angelaBadge) angelaBadge.innerText = 'Hi there! 🎀';
+                    if (tomBadge) tomBadge.innerText = 'Hey! 😼';
+                }, 3000);
+            }
+        }, 7600);
+    },
+
+    mascotPointToPunch() {
+        const tomWrap = document.getElementById('alive-tom-wrap');
+        const badge = document.getElementById('tom-alive-badge');
+        const speech = document.getElementById('mascot-speech-text');
+
+        if (tomWrap) {
+            tomWrap.classList.remove('point-down');
+            void tomWrap.offsetWidth; // Reflow
+            tomWrap.classList.add('point-down');
+
+            // Spawn pointing finger particle
+            this.spawnReactionParticle(tomWrap, '👇');
+        }
+
+        if (badge) badge.innerText = 'Look here! 👇';
+        if (speech) {
+            speech.innerHTML = `<strong>Tom:</strong> "Tap the Punch button right down here at the bottom! 👇"`;
+        }
+
+        // Trigger pulse on the bottom nav Punch button and floating guide
+        this.highlightBottomPunch(true);
+
+        setTimeout(() => {
+            if (badge) badge.innerText = 'Hey! 😼';
+        }, 3000);
+    },
+
+    spawnReactionParticle(container, emoji) {
+        if (!container) return;
+        const particle = document.createElement('div');
+        particle.className = 'alive-particle';
+        particle.innerText = emoji;
+        particle.style.left = `${30 + Math.random() * 40}%`;
+        container.appendChild(particle);
+        setTimeout(() => particle.remove(), 1200);
+    },
+
+    highlightBottomPunch(showFloatingGuide = true) {
+        const punchLink = document.querySelector('.bottom-nav-link[data-view="punch"]');
+        const guideEl = document.getElementById('bottom-punch-visual-guide');
+
+        if (punchLink) {
+            punchLink.classList.remove('pulse-attention');
+            void punchLink.offsetWidth; // Reflow
+            punchLink.classList.add('pulse-attention');
+        }
+
+        if (showFloatingGuide && guideEl) {
+            guideEl.style.display = 'flex';
+            guideEl.classList.remove('animated-fade-out');
+            guideEl.classList.add('animated-fade-in-up');
+
+            if (this.guideTimeoutId) clearTimeout(this.guideTimeoutId);
+            this.guideTimeoutId = setTimeout(() => {
+                guideEl.classList.remove('animated-fade-in-up');
+                guideEl.classList.add('animated-fade-out');
+                setTimeout(() => {
+                    guideEl.style.display = 'none';
+                    guideEl.classList.remove('animated-fade-out');
+                }, 400);
+            }, 3800);
+        }
+    },
+
+    updateMascotGreeting(name, punchObj) {
+        const rawName = (name || localStorage.getItem('EAMS_username') || 'Colleague').trim();
+        const firstName = rawName.split(' ')[0] || 'Friend';
+
+        const welcomeNameEl = document.getElementById('employee-welcome-name');
+        if (welcomeNameEl) welcomeNameEl.innerText = firstName;
+
+        const speechEl = document.getElementById('mascot-speech-text');
+        let statusMessage = '';
+
+        if (!punchObj || !punchObj.PunchIn) {
+            statusMessage = `Angela & Tom are waiting for you! Tap Punch at the bottom 👇 to check in. 🐾`;
+        } else if (punchObj.PunchIn && !punchObj.PunchOut) {
+            statusMessage = `You are on shift (In: ${punchObj.PunchIn}). Remember to Punch Out at the bottom 👇 when leaving! 🐾`;
+        } else {
+            statusMessage = `Shift completed (In: ${punchObj.PunchIn} | Out: ${punchObj.PunchOut}). Angela & Tom wish you a wonderful evening! 🎉`;
+        }
+
+        if (speechEl) speechEl.innerHTML = statusMessage;
+
+        // Restore saved companion mode
+        const savedMode = localStorage.getItem('EAMS_mascot_companion') || 'both';
+        this.setCompanionView(savedMode);
+
+        // Visual hint to bottom punch button after 2.5s if not yet punched out
+        if (!punchObj || !punchObj.PunchIn || !punchObj.PunchOut) {
+            setTimeout(() => {
+                if (this.currentActiveView === 'dashboard') {
+                    this.highlightBottomPunch(false);
+                }
+            }, 2500);
+        }
+    },
+
+    // Legacy no-op fallbacks to prevent errors
+    triggerMascotTurboDash() {
+        this.mascotPointToPunch();
+    },
+    speakGreeting() {},
+    toggleVoiceGreeting() {},
+    switchMascotCharacter() {
+        const current = localStorage.getItem('EAMS_mascot_companion') || 'both';
+        const next = current === 'both' ? 'angela' : (current === 'angela' ? 'tom' : 'both');
+        this.setCompanionView(next);
     }
 };
+
 

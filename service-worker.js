@@ -1,4 +1,4 @@
-const CACHE_NAME = "eams-cache-v76";
+const CACHE_NAME = "eams-cache-v85";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -12,6 +12,11 @@ const ASSETS_TO_CACHE = [
   "./js/employee.js",
   "./js/admin.js",
   "./js/utils.js",
+  "./img/angela_animated.webp",
+  "./img/angela_selfie.webp",
+  "./img/angela_run.webp",
+  "./img/angela.png",
+  "./img/tom.png",
   "./manifest.json",
   "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
   "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js",

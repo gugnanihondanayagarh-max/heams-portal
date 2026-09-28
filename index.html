@@ -176,9 +176,499 @@
             margin-top: 1px;
             display: block;
         }
+
+        /* =========================================================
+           TALKING ANGELA & TOM "ACT LIKE REAL" 3D LIVING MASCOT SYSTEM
+           ========================================================= */
+        .mascot-welcome-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            position: relative;
+            overflow: hidden;
+        }
+        body.dark-mode .mascot-welcome-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.94));
+            border-color: rgba(51, 65, 85, 0.9);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35);
+        }
+
+        /* 3D Living Stage Podium */
+        .alive-stage-podium {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding: 12px 10px 6px;
+            min-height: 150px;
+            background: radial-gradient(ellipse at bottom, rgba(254, 205, 211, 0.35) 0%, rgba(241, 245, 249, 0) 70%);
+            border-radius: 16px;
+            user-select: none;
+        }
+        body.dark-mode .alive-stage-podium {
+            background: radial-gradient(ellipse at bottom, rgba(228, 0, 43, 0.15) 0%, rgba(15, 23, 42, 0) 70%);
+        }
+
+        .mascot-characters-podium {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 16px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Dynamic 3D Ground Contact Shadows */
+        .mascot-ground-shadow {
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 16px;
+            background: radial-gradient(ellipse, rgba(0, 0, 0, 0.22) 0%, rgba(0, 0, 0, 0) 75%);
+            border-radius: 50%;
+            z-index: 1;
+            animation: shadowBreathe 3.2s ease-in-out infinite;
+        }
+        @keyframes shadowBreathe {
+            0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.22; }
+            50% { transform: translateX(-50%) scale(1.12); opacity: 0.32; }
+        }
+
+        /* Individual Alive Character Wrappers */
+        .alive-character-wrap {
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-origin: bottom center;
+        }
+        .alive-character-wrap:hover {
+            transform: scale(1.06) translateY(-4px);
+        }
+        .alive-character-wrap:active {
+            transform: scale(0.96) translateY(2px);
+        }
+
+        /* Character Tap Emotion Badges */
+        .alive-emotion-badge {
+            background: rgba(255, 255, 255, 0.96);
+            border: 1.5px solid #FECDD3;
+            color: #E4002B;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2px;
+            white-space: nowrap;
+            opacity: 0.95;
+            transition: all 0.2s;
+        }
+        body.dark-mode .alive-emotion-badge {
+            background: #1E293B;
+            border-color: #475569;
+            color: #FDA4AF;
+        }
+
+        /* Alive Natural 3D Breathing & Lifelike Movement */
+        .angela-alive-figure {
+            height: 120px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.25));
+            animation: angelaAliveMotion 3.2s ease-in-out infinite;
+            transform-origin: bottom center;
+        }
+        @keyframes angelaAliveMotion {
+            0%, 100% { transform: translateY(0) scaleY(1) scaleX(1) rotate(0deg); }
+            30% { transform: translateY(-2px) scaleY(1.025) scaleX(0.985) rotate(1.2deg); }
+            60% { transform: translateY(-4px) scaleY(1.03) scaleX(0.98) rotate(-1deg); }
+            80% { transform: translateY(-1px) scaleY(1.01) scaleX(0.99) rotate(0.5deg); }
+        }
+
+        .tom-alive-figure {
+            height: 120px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.25));
+            animation: tomAliveMotion 3.4s ease-in-out infinite;
+            transform-origin: bottom center;
+        }
+        @keyframes tomAliveMotion {
+            0%, 100% { transform: translateY(0) scaleY(1) scaleX(1) rotate(0deg); }
+            35% { transform: translateY(-3px) scaleY(1.028) scaleX(0.98) rotate(-1.5deg); }
+            70% { transform: translateY(-1px) scaleY(1.01) scaleX(0.99) rotate(1deg); }
+        }
+
+        /* Touch Reaction Jump */
+        .alive-character-wrap.react-jump {
+            animation: touchJumpReact 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        @keyframes touchJumpReact {
+            0% { transform: scale(1) translateY(0); }
+            35% { transform: scale(1.15) translateY(-20px) rotate(-3deg); }
+            65% { transform: scale(0.96) translateY(2px) rotate(2deg); }
+            100% { transform: scale(1) translateY(0); }
+        }
+
+        /* Playful Running Chase Mode */
+        .mascot-characters-podium.is-chasing #alive-angela-wrap {
+            animation: angelaSprintAcross 3.8s ease-in-out infinite !important;
+        }
+        .mascot-characters-podium.is-chasing #alive-tom-wrap {
+            animation: tomSprintCatch 3.8s ease-in-out infinite !important;
+        }
+        @keyframes angelaSprintAcross {
+            0% { transform: translateX(-40px) scaleX(1); }
+            45% { transform: translateX(65px) scaleX(1); }
+            50% { transform: translateX(65px) scaleX(-1); }
+            95% { transform: translateX(-40px) scaleX(-1); }
+            100% { transform: translateX(-40px) scaleX(1); }
+        }
+        @keyframes tomSprintCatch {
+            0% { transform: translateX(-85px) scaleX(1) rotate(6deg); }
+            45% { transform: translateX(15px) scaleX(1) rotate(8deg); }
+            50% { transform: translateX(15px) scaleX(-1) rotate(-8deg); }
+            95% { transform: translateX(-85px) scaleX(-1) rotate(-6deg); }
+            100% { transform: translateX(-85px) scaleX(1) rotate(6deg); }
+        }
+
+        /* Tom Point Down Animation */
+        .alive-character-wrap.point-down {
+            animation: tomPointDown 1.8s ease-in-out !important;
+        }
+        @keyframes tomPointDown {
+            0% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(6px) scaleY(0.96) rotate(14deg); }
+            65% { transform: translateY(8px) scaleY(0.95) rotate(18deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+
+        /* Floating Particle Emojis */
+        .alive-particle {
+            position: absolute;
+            top: -10px;
+            font-size: 1.3rem;
+            pointer-events: none;
+            animation: particleFloatUp 1.2s forwards ease-out;
+            z-index: 10;
+        }
+        @keyframes particleFloatUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            30% { transform: translateY(-14px) scale(1.3); opacity: 1; }
+            100% { transform: translateY(-36px) scale(1); opacity: 0; }
+        }
+
+        /* Companion Mode Filter Badges */
+        .companion-pill-btn {
+            background: transparent;
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            color: #64748B;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .companion-pill-btn:hover {
+            border-color: #E4002B;
+            color: #E4002B;
+        }
+        .companion-pill-btn.active {
+            background: #E4002B;
+            border-color: #E4002B;
+            color: white;
+        }
+        body.dark-mode .companion-pill-btn {
+            border-color: #334155;
+            color: #94A3B8;
+        }
+        body.dark-mode .companion-pill-btn.active {
+            background: #E4002B;
+            color: white;
+        }
+
+        .mascot-name-tag {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #E4002B;
+            margin-bottom: 2px;
+        }
+        .mascot-message-text {
+            font-size: 0.95rem;
+            line-height: 1.35;
+            color: #1E293B;
+        }
+        body.dark-mode .mascot-message-text {
+            color: #F1F5F9;
+        }
+
+        /* Animated Finger Hint to Bottom Punch Button */
+        .mascot-finger-hint {
+            background: rgba(228, 0, 43, 0.08);
+            border: 1px dashed var(--brand-red);
+            border-radius: 20px;
+            padding: 6px 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--brand-red);
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+        }
+        body.dark-mode .mascot-finger-hint {
+            background: rgba(228, 0, 43, 0.2);
+            color: #FFA4A4;
+        }
+        .mascot-finger-hint:hover {
+            background: rgba(228, 0, 43, 0.16);
+            transform: translateY(2px);
+        }
+        .finger-icon {
+            font-size: 1.25rem;
+            animation: fingerPointAnim 1.2s infinite ease-in-out;
+        }
+        @keyframes fingerPointAnim {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+
+        /* Camera Screen Standing Mascot Pose Beside Circle */
+        /* Camera Screen Standing Mascot (Angela in Bottom-Right Corner: NOT outside, NOT middle in circle) */
+        .camera-stage-wrapper {
+            position: relative;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .camera-viewport-container {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            aspect-ratio: 4/3;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: #000000;
+            box-shadow: var(--shadow-lg);
+            border: 3px solid var(--light-border);
+        }
+
+        .camera-corner-mascot {
+            position: absolute;
+            right: 8px;
+            bottom: 2px;
+            z-index: 35;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            pointer-events: auto;
+            cursor: pointer;
+            user-select: none;
+            transform-origin: bottom right;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .camera-corner-mascot:hover {
+            transform: scale(1.05);
+        }
+        .camera-corner-mascot:active {
+            transform: scale(0.96);
+        }
+
+        .camera-angela-corner-figure {
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.75));
+            transform-origin: bottom center;
+            animation: angelaCameraPose 3.2s ease-in-out infinite;
+            display: block;
+        }
+        .camera-angela-corner-figure.figure-makeup {
+            height: 142px;
+        }
+        .camera-angela-corner-figure.figure-standing {
+            height: 165px;
+        }
+        @keyframes angelaCameraPose {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-3px) rotate(1deg); }
+        }
+
+        /* Snap Celebrate Jump */
+        .camera-corner-mascot.snap-celebrate .camera-angela-corner-figure {
+            animation: snapCheer 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        @keyframes snapCheer {
+            0% { transform: scale(1) translateY(0); }
+            35% { transform: scale(1.22) translateY(-22px) rotate(6deg); }
+            70% { transform: scale(0.95) translateY(2px) rotate(-3deg); }
+            100% { transform: scale(1) translateY(0); }
+        }
+
+        .mascot-camera-bubble {
+            background: rgba(255, 255, 255, 0.95);
+            color: #E11D48;
+            border: 1.5px solid rgba(225, 29, 72, 0.3);
+            font-weight: 700;
+            font-size: 0.68rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            animation: bubblePop 2.4s infinite ease-in-out;
+            pointer-events: none;
+            text-align: center;
+        }
+        body.dark-mode .mascot-camera-bubble {
+            background: #1E293B;
+            color: #FDA4AF;
+            border-color: rgba(253, 164, 175, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+        }
+        @keyframes bubblePop {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .mascot-pose-badge {
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffffff;
+            font-size: 0.62rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-top: 3px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            letter-spacing: 0.2px;
+            text-align: center;
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+        }
+
+        @media (max-width: 575px) {
+            .camera-angela-corner-figure.figure-makeup {
+                height: 125px;
+            }
+            .camera-angela-corner-figure.figure-standing {
+                height: 145px;
+            }
+            .mascot-camera-bubble {
+                font-size: 0.62rem;
+                padding: 2px 6px;
+            }
+            .mascot-pose-badge {
+                font-size: 0.58rem;
+                padding: 1px 6px;
+            }
+        }
+
+        /* Camera Shutter Flash Effect */
+        .camera-flash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #FFFFFF;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease-out;
+        }
+        .camera-flash-overlay.flashing {
+            opacity: 0.95;
+            transition: none;
+        }
+
+        /* Bottom Nav Punch Button Attention Pulse */
+        .bottom-nav-link[data-view="punch"] {
+            position: relative;
+        }
+        .bottom-nav-link[data-view="punch"]::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px dashed rgba(228, 0, 43, 0.55);
+            animation: navPulseRing 2.4s infinite;
+            pointer-events: none;
+        }
+        @keyframes navPulseRing {
+            0% { transform: translate(-50%, -50%) scale(0.75); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.35); opacity: 0; }
+        }
+
+        /* Bottom Floating Guide Tooltip */
+        .bottom-punch-visual-guide {
+            position: fixed;
+            bottom: 66px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1030;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+            animation: guideFloat 2s ease-in-out infinite;
+        }
+        @keyframes guideFloat {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-6px); }
+        }
+        .guide-speech {
+            background: #E4002B;
+            color: white;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 12px;
+            margin-bottom: 2px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+            white-space: nowrap;
+        }
+        .guide-bouncing-finger {
+            font-size: 1.35rem;
+            animation: fingerBouncing 0.9s infinite alternate ease-in-out;
+        }
+        @keyframes fingerBouncing {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(6px); }
+        }
+
+
+
+        .bottom-nav-link.pulse-attention {
+            animation: bottomNavAttention 0.65s ease-in-out 3;
+        }
+        @keyframes bottomNavAttention {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.22); color: var(--brand-red); }
+        }
     </style>
 </head>
 <body class="employee-restricted-context">
+    <!-- Camera Flash Shutter Overlay -->
+    <div id="camera-flash-overlay" class="camera-flash-overlay"></div>
 
     <!-- Connecting Gateway Loader Screen -->
     <div id="loading-gateway-screen" style="display: none;">
@@ -249,15 +739,67 @@
             
             <!-- View: Dashboard -->
             <div id="view-dashboard" class="employee-view" style="display: none;">
-                <div class="glass-card p-4 mb-4 text-center">
-                    <h5 class="text-muted-custom mb-1">Welcome back,</h5>
-                    <h3 class="fw-bold text-brand mb-3" id="employee-welcome-name">Employee</h3>
-                    <div class="p-3 today-state-box rounded text-center d-inline-block small" style="min-width: 250px;">
-                        <span class="fw-semibold text-muted-custom">Today's State:</span>
-                        <div class="mt-1 fw-bold" id="dash-punch-state">Checking status...</div>
+                <div class="glass-card p-3 p-md-4 mb-4 mascot-welcome-card">
+                    <!-- 3D Living Stage Podium (Angela & Tom Act Like Real!) -->
+                    <div class="alive-stage-podium mb-3" id="alive-stage">
+                        <div class="mascot-ground-shadow"></div>
+                        <div class="mascot-characters-podium" id="mascot-characters-podium">
+                            <!-- Angela Alive 3D Character -->
+                            <div class="alive-character-wrap" id="alive-angela-wrap" onclick="EmployeeApp.interactWithMascot('angela')" title="Tap Angela to see her react!">
+                                <div class="alive-emotion-badge" id="angela-alive-badge">Hi there! 🎀</div>
+                                <img src="img/angela_animated.webp" class="angela-alive-figure" id="angela-alive-img" alt="Talking Angela">
+                            </div>
+
+                            <!-- Tom Alive 3D Character -->
+                            <div class="alive-character-wrap" id="alive-tom-wrap" onclick="EmployeeApp.interactWithMascot('tom')" title="Tap Tom to see him react!">
+                                <div class="alive-emotion-badge" id="tom-alive-badge">Hey! 😼</div>
+                                <img src="img/tom.png" class="tom-alive-figure" id="tom-alive-img" alt="Talking Tom">
+                            </div>
+                        </div>
                     </div>
-                    <div class="mt-3">
-                        <button class="btn btn-sm btn-outline-danger" onclick="EmployeeApp.openCorrectionModal()"><i class="fa-solid fa-clock-rotate-left"></i> Request Missed Punch Correction</button>
+
+                    <!-- Welcome & Today's Attendance State -->
+                    <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3 pt-1">
+                        <div class="text-center text-md-start">
+                            <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-1 mb-2">
+                                <span class="small text-muted me-1">Companion:</span>
+                                <button class="companion-pill-btn active" id="btn-mode-both" onclick="EmployeeApp.setCompanionView('both')">🐱💖 Both</button>
+                                <button class="companion-pill-btn" id="btn-mode-angela" onclick="EmployeeApp.setCompanionView('angela')">🎀 Angela</button>
+                                <button class="companion-pill-btn" id="btn-mode-tom" onclick="EmployeeApp.setCompanionView('tom')">😼 Tom</button>
+                            </div>
+                            <h5 class="fw-bold text-brand m-0">
+                                Hi <span id="employee-welcome-name" class="text-danger">Employee</span>! 👋 Welcome back!
+                            </h5>
+                            <p class="text-muted small m-0 mt-1" id="mascot-speech-text">
+                                Angela & Tom are waiting for you! Tap Punch at the bottom 👇 to check in.
+                            </p>
+                        </div>
+
+                        <!-- Today's State Box & Visual Finger Guide to Bottom Nav -->
+                        <div class="mascot-cta-box text-center text-md-end w-100 w-md-auto flex-shrink-0">
+                            <div class="p-2 px-3 rounded bg-body-tertiary border mb-2 text-center text-md-end">
+                                <small class="text-muted d-block" style="font-size:0.72rem;">Today's Attendance Status</small>
+                                <strong id="dash-punch-state" class="text-brand fs-6">Checking status...</strong>
+                            </div>
+                            <div class="mascot-finger-hint" onclick="EmployeeApp.mascotPointToPunch()" title="Tom points to punch button!">
+                                <span class="finger-icon">👇</span> <span>Tom: Punch is at the bottom</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-actions row -->
+                    <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <button class="btn btn-sm btn-outline-danger" onclick="EmployeeApp.openCorrectionModal()">
+                            <i class="fa-solid fa-clock-rotate-left me-1"></i> Missed Punch Correction
+                        </button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="EmployeeApp.playMascotChase()" id="btn-mascot-chase" title="Make Angela & Tom run and play!">
+                                <i class="fa-solid fa-person-running text-warning me-1"></i> Chase & Play 🏃🐾
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="EmployeeApp.mascotPointToPunch()" title="Tom points to the punch button!">
+                                <i class="fa-solid fa-hand-point-down text-danger me-1"></i> Point to Punch 👇
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -356,12 +898,21 @@
                             <h4 class="fw-bold text-center text-brand mb-1"><i class="fa-solid fa-camera"></i> Selfie Geofence Verification</h4>
                             <p class="text-muted text-center small mb-3">Front camera snap & branch radius checks required.</p>
 
-                            <!-- Camera frame -->
-                            <div class="camera-viewport-container">
-                                <video id="camera-stream" class="camera-stream-video" autoplay playsinline></video>
-                                <img id="selfie-preview" class="captured-image-preview" src="" alt="Captured Selfie">
-                                <div class="camera-overlay-mask">
-                                    <div class="camera-guide-ellipse"></div>
+                            <!-- Camera Stage with Angela in bottom-right corner (NOT outside, NOT middle in circle) -->
+                            <div class="camera-stage-wrapper">
+                                <div class="camera-viewport-container">
+                                    <video id="camera-stream" class="camera-stream-video" autoplay playsinline></video>
+                                    <img id="selfie-preview" class="captured-image-preview" src="" alt="Captured Selfie">
+                                    <div class="camera-overlay-mask">
+                                        <div class="camera-guide-ellipse"></div>
+                                    </div>
+                                    <!-- Angela Corner Mascot (Outside Dotted Circle, Inside Bottom-Right Frame) -->
+                                    <div class="camera-corner-mascot" id="camera-side-angela" onclick="EmployeeApp.toggleSelfieMascotPose()" title="Tap Angela to switch pose!">
+                                        <div class="mascot-camera-bubble angela-bubble" id="camera-angela-speech">Touching up my makeup! 💄✨</div>
+                                        <img src="img/angela_selfie.webp?v=35" id="camera-angela-makeup" class="camera-angela-corner-figure figure-makeup" alt="Angela Makeup Pose" style="display: block;">
+                                        <img src="img/angela_animated.webp?v=35" id="camera-angela-standing" class="camera-angela-corner-figure figure-standing" alt="Angela Standing Pose" style="display: none;">
+                                        <div class="mascot-pose-badge" id="camera-pose-indicator"><i class="fa-solid fa-wand-magic-sparkles"></i> Makeup Pose (Tap)</div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -688,6 +1239,12 @@
 
         </main>
 
+        <!-- Floating Visual Tap / Guide to Punch Button -->
+        <div id="bottom-punch-visual-guide" class="bottom-punch-visual-guide" style="display: none;">
+            <div class="guide-speech">Tap Punch here! 👇</div>
+            <div class="guide-bouncing-finger">👇</div>
+        </div>
+
         <!-- Bottom Mobile-first Navigation Bar -->
         <nav class="bottom-nav-bar">
             <a href="#" class="bottom-nav-link active" data-view="dashboard" onclick="EmployeeApp.switchView('dashboard')">
@@ -774,10 +1331,10 @@
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Core Modules -->
-    <script src="js/utils.js?v=24"></script>
-    <script src="js/api.js?v=24"></script>
-    <script src="js/auth.js?v=24"></script>
-    <script src="js/employee.js?v=24"></script>
+    <script src="js/utils.js?v=35"></script>
+    <script src="js/api.js?v=35"></script>
+    <script src="js/auth.js?v=35"></script>
+    <script src="js/employee.js?v=35"></script>
     
     <!-- Login router gate controller -->
     <script>
