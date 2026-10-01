@@ -895,12 +895,151 @@ const API = {
         }
 
         if (action === "processCorrection") {
-            await this.rest(`corrections?RequestID=eq.${encodeURIComponent(payload.requestId)}`, {
+            const reqId = payload.requestId;
+            const newStatus = payload.status; // "Approved" or "Rejected"
+
+            // 1. Update corrections table status
+            await this.rest(`corrections?RequestID=eq.${encodeURIComponent(reqId)}`, {
                 method: "PATCH",
                 body: {
-                    Status: payload.status
+                    Status: newStatus
                 }
             });
+
+            // 2. If Approved, apply to attendance table
+            if (newStatus === "Approved") {
+                const corrs = await this.rest(`corrections?RequestID=eq.${encodeURIComponent(reqId)}&select=*`);
+                const corr = (corrs && corrs.length > 0) ? corrs[0] : null;
+
+                if (corr) {
+                    const empId = corr.EmployeeID;
+                    const dateStr = corr.Date;
+
+                    const normalizeDate = (d) => {
+                        if (!d) return "";
+                        const s = d.toString().trim();
+                        if (/^\d{1,2}-[A-Za-z]{3}-\d{4}$/.test(s)) return s;
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+                            const parts = s.split('-');
+                            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                            const day = parts[2];
+                            const month = months[parseInt(parts[1], 10) - 1];
+                            const year = parts[0];
+                            return `${day}-${month}-${year}`;
+                        }
+                        const dt = new Date(d);
+                        if (!isNaN(dt.getTime())) {
+                            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                            const day = dt.getDate().toString().padStart(2, '0');
+                            const month = months[dt.getMonth()];
+                            const year = dt.getFullYear();
+                            return `${day}-${month}-${year}`;
+                        }
+                        return s;
+                    };
+
+                    const normDate = normalizeDate(dateStr);
+                    const attId = `${empId}_${normDate}`;
+
+                    // Fetch existing attendance record
+                    const existingList = await this.rest(`attendance?or=(AttendanceID.eq.${encodeURIComponent(attId)},AttendanceID.eq.${encodeURIComponent(`${empId}_${dateStr}`)},and(EmployeeID.eq.${encodeURIComponent(empId)},Date.eq.${encodeURIComponent(normDate)}),and(EmployeeID.eq.${encodeURIComponent(empId)},Date.eq.${encodeURIComponent(dateStr)}))&select=*`);
+                    const existing = (existingList && existingList.length > 0) ? existingList[0] : null;
+
+                    let punchIn = (existing && existing.PunchIn && existing.PunchIn !== "--") ? existing.PunchIn : "";
+                    let punchOut = (existing && existing.PunchOut && existing.PunchOut !== "--") ? existing.PunchOut : "";
+
+                    const reqType = (corr.RequestType || "").toLowerCase();
+                    if (corr.RequestedInTime && (reqType.includes("in") || reqType.includes("both") || !reqType.includes("out"))) {
+                        punchIn = corr.RequestedInTime;
+                    }
+                    if (corr.RequestedOutTime && (reqType.includes("out") || reqType.includes("both") || !reqType.includes("in"))) {
+                        punchOut = corr.RequestedOutTime;
+                    }
+
+                    // Helper to parse time in minutes
+                    const parseTimeMin = (tStr) => {
+                        if (!tStr || tStr === "--") return null;
+                        const m = tStr.toString().match(/(\d{1,2}):(\d{2})/);
+                        if (m) {
+                            let h = parseInt(m[1], 10);
+                            const min = parseInt(m[2], 10);
+                            if (tStr.toString().toLowerCase().includes("pm") && h < 12) h += 12;
+                            if (tStr.toString().toLowerCase().includes("am") && h === 12) h = 0;
+                            return h * 60 + min;
+                        }
+                        return null;
+                    };
+
+                    let workingHours = existing && existing.WorkingHours ? existing.WorkingHours : "";
+                    const inMin = parseTimeMin(punchIn);
+                    const outMin = parseTimeMin(punchOut);
+                    if (inMin !== null && outMin !== null) {
+                        let diff = outMin - inMin;
+                        if (diff < 0) diff += 24 * 60;
+                        const hrs = Math.floor(diff / 60);
+                        const mins = diff % 60;
+                        workingHours = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:00`;
+                    }
+
+                    const remarksText = `[Correction Approved: ${corr.RequestID}${corr.Reason ? ' - ' + corr.Reason : ''}]`;
+                    const prevRemarks = existing && existing.Remarks ? existing.Remarks.trim() : "";
+                    const finalRemarks = prevRemarks ? `${prevRemarks} | ${remarksText}` : remarksText;
+
+                    if (existing) {
+                        const targetAttId = existing.AttendanceID || attId;
+                        await this.rest(`attendance?AttendanceID=eq.${encodeURIComponent(targetAttId)}`, {
+                            method: "PATCH",
+                            body: {
+                                PunchIn: punchIn,
+                                PunchOut: punchOut,
+                                WorkingHours: workingHours,
+                                Status: "Present",
+                                Remarks: finalRemarks
+                            }
+                        });
+                    } else {
+                        await this.rest(`attendance`, {
+                            method: "POST",
+                            body: {
+                                AttendanceID: attId,
+                                EmployeeID: empId,
+                                Date: normDate,
+                                PunchIn: punchIn,
+                                PunchOut: punchOut,
+                                WorkingHours: workingHours,
+                                Status: "Present",
+                                Remarks: remarksText
+                            }
+                        });
+                    }
+
+                    // Audit log
+                    try {
+                        await this.rest(`logs`, {
+                            method: "POST",
+                            body: {
+                                Timestamp: new Date().toISOString(),
+                                User: payload.authUserId || "Admin",
+                                Action: "PUNCH_CORRECTION_APPROVED",
+                                Details: `Approved punch correction ${corr.RequestID} for ${empId} on ${dateStr}. In: ${punchIn}, Out: ${punchOut}, WorkingHours: ${workingHours}`
+                            }
+                        });
+                    } catch (lErr) {}
+                }
+            } else if (newStatus === "Rejected") {
+                try {
+                    await this.rest(`logs`, {
+                        method: "POST",
+                        body: {
+                            Timestamp: new Date().toISOString(),
+                            User: payload.authUserId || "Admin",
+                            Action: "PUNCH_CORRECTION_REJECTED",
+                            Details: `Rejected punch correction ${reqId}`
+                        }
+                    });
+                } catch (lErr) {}
+            }
+
             return { status: "Success", message: `Punch correction marked as ${payload.status}.` };
         }
 
@@ -944,18 +1083,200 @@ const API = {
         }
 
         if (action === "updateAttendance") {
-            const attId = payload.attendanceId;
-            const updateFields = { ...payload };
-            delete updateFields.action;
-            delete updateFields.attendanceId;
-            delete updateFields.token;
-            delete updateFields.authUserId;
+            const attId = payload.AttendanceID || payload.attendanceId || (payload.EmployeeID && payload.Date ? `${payload.EmployeeID}_${payload.Date}` : null);
+            const empId = payload.EmployeeID || (attId ? attId.split('_')[0] : "");
+            const dateStr = payload.Date || (attId ? attId.split('_').slice(1).join('_') : "");
 
-            await this.rest(`attendance?AttendanceID=eq.${encodeURIComponent(attId)}`, {
-                method: "PATCH",
-                body: updateFields
-            });
-            return { status: "Success", message: "Attendance record updated." };
+            if (!empId || !dateStr) {
+                return { status: "Error", message: "Missing EmployeeID or Date for attendance update." };
+            }
+
+            const normalizeDate = (d) => {
+                if (!d) return "";
+                const s = d.toString().trim();
+                if (/^\d{1,2}-[A-Za-z]{3}-\d{4}$/.test(s)) return s;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+                    const parts = s.split('-');
+                    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                    const day = parts[2];
+                    const month = months[parseInt(parts[1], 10) - 1];
+                    const year = parts[0];
+                    return `${day}-${month}-${year}`;
+                }
+                const dt = new Date(d);
+                if (!isNaN(dt.getTime())) {
+                    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                    const day = dt.getDate().toString().padStart(2, '0');
+                    const month = months[dt.getMonth()];
+                    const year = dt.getFullYear();
+                    return `${day}-${month}-${year}`;
+                }
+                return s;
+            };
+
+            const normDate = normalizeDate(dateStr);
+            const canonicalAttId = attId || `${empId}_${normDate}`;
+
+            const parseTimeMin = (tStr) => {
+                if (!tStr || tStr === "--") return null;
+                const m = tStr.toString().match(/(\d{1,2}):(\d{2})/);
+                if (m) {
+                    let h = parseInt(m[1], 10);
+                    const min = parseInt(m[2], 10);
+                    if (tStr.toString().toLowerCase().includes("pm") && h < 12) h += 12;
+                    if (tStr.toString().toLowerCase().includes("am") && h === 12) h = 0;
+                    return h * 60 + min;
+                }
+                return null;
+            };
+
+            // Check if record exists
+            const existingList = await this.rest(`attendance?or=(AttendanceID.eq.${encodeURIComponent(canonicalAttId)},AttendanceID.eq.${encodeURIComponent(attId || '')},and(EmployeeID.eq.${encodeURIComponent(empId)},Date.eq.${encodeURIComponent(normDate)}),and(EmployeeID.eq.${encodeURIComponent(empId)},Date.eq.${encodeURIComponent(dateStr)}))&select=*`);
+            const existing = (existingList && existingList.length > 0) ? existingList[0] : null;
+
+            let punchIn = payload.PunchIn !== undefined ? payload.PunchIn : (existing ? existing.PunchIn : "");
+            let punchOut = payload.PunchOut !== undefined ? payload.PunchOut : (existing ? existing.PunchOut : "");
+            let status = payload.Status || (existing ? existing.Status : "Present");
+            let remarks = payload.Remarks !== undefined ? payload.Remarks : (existing ? existing.Remarks : "[Admin Override]");
+
+            let workingHours = payload.WorkingHours;
+            if (!workingHours && punchIn && punchOut) {
+                const inMin = parseTimeMin(punchIn);
+                const outMin = parseTimeMin(punchOut);
+                if (inMin !== null && outMin !== null) {
+                    let diff = outMin - inMin;
+                    if (diff < 0) diff += 24 * 60;
+                    const hrs = Math.floor(diff / 60);
+                    const mins = diff % 60;
+                    workingHours = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:00`;
+                }
+            } else if (!workingHours && existing && existing.WorkingHours) {
+                workingHours = existing.WorkingHours;
+            }
+
+            const updateRecord = {
+                AttendanceID: existing ? (existing.AttendanceID || canonicalAttId) : canonicalAttId,
+                EmployeeID: empId,
+                Date: existing ? (existing.Date || normDate) : normDate,
+                PunchIn: punchIn || "",
+                PunchOut: punchOut || "",
+                WorkingHours: workingHours || "",
+                Status: status,
+                Remarks: remarks
+            };
+
+            if (existing) {
+                await this.rest(`attendance?AttendanceID=eq.${encodeURIComponent(updateRecord.AttendanceID)}`, {
+                    method: "PATCH",
+                    body: updateRecord
+                });
+            } else {
+                await this.rest(`attendance`, {
+                    method: "POST",
+                    body: updateRecord
+                });
+            }
+
+            // Audit log
+            try {
+                await this.rest(`logs`, {
+                    method: "POST",
+                    body: {
+                        Timestamp: new Date().toISOString(),
+                        User: payload.authUserId || "Admin",
+                        Action: "ADMIN_ATTENDANCE_OVERRIDE",
+                        Details: `Attendance updated for ${empId} on ${updateRecord.Date}. Status: ${status}, In: ${punchIn}, Out: ${punchOut}`
+                    }
+                });
+            } catch (lErr) {}
+
+            return { status: "Success", message: "Attendance record updated successfully." };
+        }
+
+        if (action === "batchUpdateAttendance") {
+            const changes = payload.changes || [];
+            if (!Array.isArray(changes) || changes.length === 0) {
+                return { status: "Success", message: "No changes to update." };
+            }
+
+            const normalizeDate = (d) => {
+                if (!d) return "";
+                const s = d.toString().trim();
+                if (/^\d{1,2}-[A-Za-z]{3}-\d{4}$/.test(s)) return s;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+                    const parts = s.split('-');
+                    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                    const day = parts[2];
+                    const month = months[parseInt(parts[1], 10) - 1];
+                    const year = parts[0];
+                    return `${day}-${month}-${year}`;
+                }
+                const dt = new Date(d);
+                if (!isNaN(dt.getTime())) {
+                    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                    const day = dt.getDate().toString().padStart(2, '0');
+                    const month = months[dt.getMonth()];
+                    const year = dt.getFullYear();
+                    return `${day}-${month}-${year}`;
+                }
+                return s;
+            };
+
+            let updatedCount = 0;
+            for (const c of changes) {
+                const empId = c.EmployeeID;
+                const rawDate = c.Date;
+                const normDate = normalizeDate(rawDate);
+                const attId = c.AttendanceID || `${empId}_${normDate}`;
+                const newStatus = c.Status;
+
+                const existingList = await this.rest(`attendance?or=(AttendanceID.eq.${encodeURIComponent(attId)},AttendanceID.eq.${encodeURIComponent(`${empId}_${rawDate}`)},and(EmployeeID.eq.${encodeURIComponent(empId)},Date.eq.${encodeURIComponent(normDate)}),and(EmployeeID.eq.${encodeURIComponent(empId)},Date.eq.${encodeURIComponent(rawDate)}))&select=*`);
+                const existing = (existingList && existingList.length > 0) ? existingList[0] : null;
+
+                const remarksText = `[Admin Bulk Override: ${newStatus}]`;
+
+                if (existing) {
+                    const targetId = existing.AttendanceID || attId;
+                    const prevRemarks = existing.Remarks ? existing.Remarks.trim() : "";
+                    await this.rest(`attendance?AttendanceID=eq.${encodeURIComponent(targetId)}`, {
+                        method: "PATCH",
+                        body: {
+                            Status: newStatus,
+                            Remarks: prevRemarks ? `${prevRemarks} | ${remarksText}` : remarksText
+                        }
+                    });
+                } else {
+                    await this.rest(`attendance`, {
+                        method: "POST",
+                        body: {
+                            AttendanceID: attId,
+                            EmployeeID: empId,
+                            Date: normDate,
+                            PunchIn: "",
+                            PunchOut: "",
+                            WorkingHours: "",
+                            Status: newStatus,
+                            Remarks: remarksText
+                        }
+                    });
+                }
+                updatedCount++;
+            }
+
+            // Audit log
+            try {
+                await this.rest(`logs`, {
+                    method: "POST",
+                    body: {
+                        Timestamp: new Date().toISOString(),
+                        User: payload.authUserId || "Admin",
+                        Action: "ADMIN_BULK_OVERRIDE",
+                        Details: `Bulk attendance update performed for ${updatedCount} records.`
+                    }
+                });
+            } catch (lErr) {}
+
+            return { status: "Success", message: `Successfully updated ${updatedCount} attendance record(s).` };
         }
 
         if (action === "generateReport") {

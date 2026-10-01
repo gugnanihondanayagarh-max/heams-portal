@@ -1165,6 +1165,8 @@ const AdminApp = {
 
             if (res.status === "Success") {
                 this.forceCloseModal("modal-attendance-edit");
+                sessionStorage.removeItem("EAMS_admin_cache_history");
+                this.historyCache = {};
                 Swal.fire("Saved", res.message, "success");
                 this.loadAttendanceLedger();
             } else {
@@ -1836,6 +1838,8 @@ const AdminApp = {
                     Swal.close();
 
                     if (res.status === "Success") {
+                        sessionStorage.removeItem("EAMS_admin_cache_history");
+                        self.historyCache = {};
                         Swal.fire("Processed", res.message, "success").then(() => {
                             self.loadCorrectionRequests(true);
                         });
